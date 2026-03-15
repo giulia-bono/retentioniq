@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "mcp__ide__executeCode",
+      "Bash(brew install:*)",
+      "Bash(xargs ls:*)"
     ]
   }
 }

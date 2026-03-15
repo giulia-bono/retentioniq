@@ -26,14 +26,19 @@ env/
 .env.*
 !.env.example
 
-# Data — raw dumps are large and may contain PII
+# Data — raw dumps and feature CSVs are large and may contain PII
 data/raw/
+data/clean/
+data/features/*.csv
+data/features/*.parquet
 
-# Trained models (large binaries — use artifact storage in prod)
+# Trained model binaries (large — use artifact storage in prod)
+# JSON parameter files ARE committed (small, human-readable, reproducible)
 data/models/
 models/
 *.pkl
 *.joblib
+!data/models/*.json
 
 # macOS
 .DS_Store
