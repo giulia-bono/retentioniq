@@ -1,0 +1,9 @@
+pandas
+matplotlib
+seaborn
+scikit-learn
+xgboost
+lifetimes
+shap
+joblib
+python-dotenv
