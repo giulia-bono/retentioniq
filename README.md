@@ -50,21 +50,26 @@ Built on top of Miracle Sheets Shopify data as part of an 8-person AI & Data Sci
 
 ```bash
 git clone <repo-url>
-cd "Final Project"
+cd retentioniq
 
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 2. Configure credentials
+### 2. Download the data
+
+The CSV datasets are shared via Google Drive (not committed to Git — large files + PII).
+See [data/README.md](data/README.md) for the download link and setup instructions.
+
+### 3. Configure credentials
 
 ```bash
 cp .env.example .env
 # Edit .env and fill in your Shopify store URL and access token
 ```
 
-### 3. Run data extraction
+### 4. Run data extraction
 
 ```bash
 python -m src.ingestion.run_full_extraction
@@ -72,7 +77,7 @@ python -m src.ingestion.run_full_extraction
 
 Raw API responses are saved as `.jsonl` files in `data/raw/` (gitignored).
 
-### 4. Build features
+### 5. Build features
 
 ```bash
 python -m src.pipeline.build_features
@@ -80,7 +85,7 @@ python -m src.pipeline.build_features
 
 Outputs `data/features/customer_features.parquet`.
 
-### 5. Train models
+### 6. Train models
 
 ```bash
 python -m src.models.train_all
@@ -88,14 +93,14 @@ python -m src.models.train_all
 
 Serialized models are saved to `data/models/` (gitignored — use artifact storage in prod).
 
-### 6. Start the API
+### 7. Start the API
 
 ```bash
 uvicorn src.api.main:app --reload
 # Docs at http://localhost:8000/docs
 ```
 
-### 7. Launch the dashboard
+### 8. Launch the dashboard
 
 ```bash
 streamlit run app/streamlit_app.py
