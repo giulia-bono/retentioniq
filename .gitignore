@@ -34,12 +34,13 @@ data/features/*.csv
 data/features/*.parquet
 
 # Trained model binaries (large — use artifact storage in prod)
-# JSON parameter files ARE committed (small, human-readable, reproducible)
-data/models/
-models/
+# JSON parameter files ARE committed (small, human-readable, reproducible).
+# Note: cannot use `data/models/` + `!data/models/*.json` — git won't reinstate
+# files inside an ignored directory. Match binaries directly instead.
+/models/
 *.pkl
 *.joblib
-!data/models/*.json
+data/models/*.bin
 
 # macOS
 .DS_Store
