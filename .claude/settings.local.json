@@ -4,7 +4,11 @@
       "Bash(cd:*)",
       "mcp__ide__executeCode",
       "Bash(brew install:*)",
-      "Bash(xargs ls:*)"
+      "Bash(xargs ls:*)",
+      "Bash(pip install:*)",
+      "Bash(python3 -c \":*)",
+      "Bash(pytest tests/s9/ -v)",
+      "Bash(PYTHONPATH=. pytest tests/s9/ -v)"
     ]
   }
 }
