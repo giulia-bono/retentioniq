@@ -1,0 +1,21 @@
+{
+  "feature_cols": [
+    "total_orders",
+    "total_revenue",
+    "avg_order_value",
+    "T",
+    "recency",
+    "days_since_last_order",
+    "frequency",
+    "monetary_value",
+    "refund_rate"
+  ],
+  "churn_window_days": 299,
+  "lr_auc": 0.669,
+  "rf_auc": 0.6811,
+  "xgb_auc": 0.6819,
+  "lr_ap": 0.9654,
+  "rf_ap": 0.9682,
+  "xgb_ap": 0.9683,
+  "trained": "2026-05-07T19:26:10.464449"
+}
