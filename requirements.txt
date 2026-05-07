@@ -1,4 +1,6 @@
 pandas
+pyarrow
+numpy
 matplotlib
 seaborn
 scikit-learn
@@ -7,3 +9,15 @@ lifetimes
 shap
 joblib
 python-dotenv
+
+# API
+fastapi
+uvicorn[standard]
+pydantic
+
+# Notebooks
+jupyter
+ipykernel
+
+# Tests
+pytest

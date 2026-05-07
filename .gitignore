@@ -29,6 +29,7 @@ env/
 # Data — raw dumps and feature CSVs are large and may contain PII
 data/raw/
 data/clean/
+data/interim/
 data/features/*.csv
 data/features/*.parquet
 
