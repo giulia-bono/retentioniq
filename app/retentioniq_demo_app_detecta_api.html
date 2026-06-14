@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RetentionIQ — Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Spline+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#0E1B33;--ink2:#26324d;--muted:#6B7A99;--line:#E4E8F0;--surface:#F5F7FB;--card:#FFFFFF;--coral:#F2585B;--live:#1FA86A;
+    --c-service_recovery:#0F9D8C;--c-timing_nudge:#E0982F;--c-winback:#F2585B;--c-loyalty:#4F6BED;--c-discount:#7B86A3;--c-first_repeat:#2FA84F;--c-hold:#9AA3B5;
+    --shadow:0 1px 2px rgba(14,27,51,.05),0 10px 30px rgba(14,27,51,.07);}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Spline Sans',sans-serif;background:radial-gradient(1200px 500px at 80% -10%,#EAF0FF 0%,transparent 60%),var(--surface);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.45}
+  .mono{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}.display{font-family:'Bricolage Grotesque'}
+  .wrap{max-width:1200px;margin:0 auto;padding:22px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .brand h1{font-family:'Bricolage Grotesque';font-weight:800;font-size:27px;letter-spacing:-.02em}.brand .dot{color:var(--coral)}
+  .live{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink2);background:var(--card);border:1px solid var(--line);border-radius:30px;padding:7px 14px;box-shadow:var(--shadow)}
+  .pulse{width:9px;height:9px;border-radius:50%;background:var(--live);animation:p 2s infinite}
+  .pulse.demo{background:#E0982F}
+  @keyframes p{0%{box-shadow:0 0 0 0 rgba(31,168,106,.5)}70%{box-shadow:0 0 0 7px rgba(31,168,106,0)}100%{box-shadow:0 0 0 0 rgba(31,168,106,0)}}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px}@media(max-width:760px){.kpis{grid-template-columns:repeat(2,1fr)}}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow)}
+  .kpi .lab{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+  .kpi .val{font-family:'Bricolage Grotesque';font-weight:800;font-size:24px;margin-top:3px}.kpi .val.accent{color:var(--coral)}.kpi .val.good{color:var(--live)}
+  .tag{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--coral);margin:28px 0 10px}
+  .grid{display:grid;grid-template-columns:330px 1fr;gap:18px}@media(max-width:880px){.grid{grid-template-columns:1fr}}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+  .ph{padding:16px 18px 4px}.ph h2{font-family:'Bricolage Grotesque';font-weight:700;font-size:14px}.psub{font-size:11.5px;color:var(--muted);padding:0 18px 12px}
+  .list{max-height:540px;overflow:auto;padding:0 10px 12px}
+  .row{display:flex;align-items:center;gap:10px;padding:11px 10px;border-radius:11px;cursor:pointer;border:1px solid transparent;transition:.14s}
+  .row:hover{background:#F1F4FA}.row.sel{background:#EEF1FF;border-color:#D5DCFB}
+  .row .cid{font-size:12.5px;font-weight:600}.row .meta{margin-left:auto;text-align:right}.row .risk{font-size:13px;font-weight:700}.row .stake{font-size:10.5px;color:var(--muted)}
+  .badge{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 7px;border-radius:6px;color:#fff;white-space:nowrap}
+  .detail{padding:18px 22px 24px}
+  .dhead{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  .dhead .cid{font-family:'Bricolage Grotesque';font-weight:800;font-size:22px;word-break:break-all}
+  .stage{font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;border:1px solid var(--line)}
+  .blocks{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}@media(max-width:620px){.blocks{grid-template-columns:1fr}}
+  .block{border:1px solid var(--line);border-radius:13px;padding:15px}
+  .block .t{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px}
+  .gnum{font-family:'Bricolage Grotesque';font-weight:800;font-size:30px;margin-bottom:8px}
+  .gauge{height:11px;border-radius:8px;background:#EDEFF5;overflow:hidden}.gauge i{display:block;height:100%;border-radius:8px}
+  .why{font-size:12.5px;line-height:1.6}.why li{margin-left:16px}
+  .reco .cat{font-family:'Bricolage Grotesque';font-weight:800;font-size:16px;margin:6px 0 2px}.reco .strat{font-size:12px;color:var(--muted);margin-bottom:10px}.reco .act{font-size:13.5px;line-height:1.5}
+  .chip{display:inline-block;font-size:10px;font-weight:600;padding:3px 8px;border-radius:14px;background:#EEF1F7;color:var(--ink2);margin-top:8px}
+  .vrow{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px dashed var(--line)}.vrow:last-child{border:0;font-weight:700}
+  .acts{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+  button{font-family:'Spline Sans';font-size:13px;font-weight:600;border:0;border-radius:10px;padding:11px 16px;cursor:pointer}
+  .btn-primary{background:var(--ink);color:#fff}.btn-ghost{background:#fff;color:var(--ink2);border:1px solid var(--line)}
+  .logged{font-size:12px;color:var(--live);font-weight:600;margin-top:10px;min-height:18px}
+  .intel{display:grid;grid-template-columns:1fr 1fr;gap:18px}@media(max-width:880px){.intel{grid-template-columns:1fr}}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+  th{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}td.mono{font-weight:600}
+  .empty{font-size:12.5px;color:var(--muted);padding:16px 18px;line-height:1.5}
+  .ladder{display:flex;padding:10px 4px 4px}.rung{flex:1;text-align:center;position:relative;padding:14px 6px}
+  .rung .num{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-family:'Bricolage Grotesque';font-weight:800;background:#EDEFF5;color:var(--muted)}
+  .rung.on .num{background:var(--ink);color:#fff}.rung.cur .num{background:var(--coral);color:#fff;box-shadow:0 0 0 5px rgba(242,88,91,.16)}
+  .rung .rl{font-size:11px;font-weight:600}.rung .rd{font-size:10px;color:var(--muted)}
+  .rung:not(:last-child):after{content:'';position:absolute;top:29px;right:-50%;width:100%;height:2px;background:#EDEFF5;z-index:-1}
+  .matbar{height:8px;background:#EDEFF5;border-radius:6px;overflow:hidden;margin:6px 18px}.matbar i{display:block;height:100%;background:linear-gradient(90deg,var(--ink),var(--coral));transition:width .5s}
+  .matnote{font-size:11px;color:var(--muted);padding:8px 18px 16px}
+  .foot{font-size:11px;color:var(--muted);text-align:center;margin:24px 0 8px}.btn-reset{background:transparent;color:var(--muted);font-size:11px;padding:6px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><h1 class="display">Retention<span class="dot">IQ</span></h1></div>
+    <div class="live"><span class="pulse" id="pulse"></span> <span id="src">loading...</span></div>
+  </header>
+  <div class="kpis">
+    <div class="kpi"><div class="lab">Customers at risk</div><div class="val" id="k-atrisk">0</div></div>
+    <div class="kpi"><div class="lab">Revenue at stake</div><div class="val accent" id="k-stake">$0</div></div>
+    <div class="kpi"><div class="lab">Value recovered</div><div class="val good" id="k-recovered">$0</div></div>
+    <div class="kpi"><div class="lab">Decisions recorded</div><div class="val" id="k-decisions">0</div></div>
+  </div>
+  <div class="tag">Predict · explain · recommend</div>
+  <div class="grid">
+    <div class="panel"><div class="ph"><h2 class="display">At-risk customers</h2></div><div class="psub" id="listsub">Ranked by revenue at risk</div><div class="list" id="list"></div></div>
+    <div class="panel"><div class="detail" id="detail"></div></div>
+  </div>
+  <div class="tag">The intelligence layer — every decision is recorded and feeds the loop</div>
+  <div class="intel">
+    <div class="panel"><div class="ph"><h2 class="display">What works, by category</h2></div><div class="psub">Treatment vs holdout repurchase — how the model learns which action fits which customer</div><div id="flywheel"></div></div>
+    <div class="panel"><div class="ph"><h2 class="display">Maturity</h2></div><div class="psub">From junior rules to a self-improving agent</div>
+      <div class="ladder">
+        <div class="rung on cur" id="rung1"><div class="num">1</div><div class="rl">Rules</div><div class="rd">today</div></div>
+        <div class="rung" id="rung2"><div class="num">2</div><div class="rl">Learning</div><div class="rd">from decisions</div></div>
+        <div class="rung" id="rung3"><div class="num">3</div><div class="rl">Self-optimizing</div><div class="rd">RL</div></div>
+        <div class="rung" id="rung4"><div class="num">4</div><div class="rl">Agentic</div><div class="rd">runs itself</div></div>
+      </div>
+      <div class="matbar"><i id="matfill" style="width:8%"></i></div><div class="matnote" id="matnote"></div>
+    </div>
+  </div>
+  <div class="foot">Built from the data-driven feedback: categories tied to strategy · why + recommendation + value in one view · every decision recorded · a path to a self-improving agent.<br><button class="btn-reset" onclick="resetDemo()">↺ reset demo data</button></div>
+</div>
+<script>
+const CAT={
+  service_recovery:{label:'Service recovery',conv:.46},timing_nudge:{label:'Timing nudge',conv:.34},
+  winback:{label:'Win-back',conv:.27},loyalty:{label:'Loyalty',conv:.40},discount:{label:'Discount',conv:.22},
+  first_repeat:{label:'First repeat',conv:.18},hold:{label:'Hold',conv:.06}};
+const COST={service_recovery:{personal:35,semi:12},winback:{personal:25,semi:8},discount:{semi:10,automated:6},timing_nudge:{automated:.5},loyalty:{automated:3},first_repeat:{automated:1},hold:{none:0}};
+const catColor=c=>getComputedStyle(document.documentElement).getPropertyValue('--c-'+c)||'#9AA3B5';
+const fmt=n=>'$'+Math.round(n||0).toLocaleString();
+const fmtInt=n=>Math.round(n||0).toLocaleString();
+// synthetic fallback, SAME SHAPE as the scored JSON from score_customers.py
+const SYNTHETIC=[
+  {customer_id:'MS-10472',churn_prob:.81,predicted_clv:168,bgnbd_p_alive:.6,recency_per_gap:2.0,days_since_last_order:190,frequency:5,refund_rate:.28,category:'service_recovery',action:'Reach out about the returns - exchange / fit help. Do NOT discount.',intensity:'personal',strategy:'Fix the cause - protect high-value relationships',value_at_stake:136,why:['returning a high share of orders','quiet well past their usual reorder rhythm']},
+  {customer_id:'MS-20913',churn_prob:.74,predicted_clv:142,bgnbd_p_alive:.55,recency_per_gap:1.9,days_since_last_order:210,frequency:4,refund_rate:.02,category:'winback',action:'Timed win-back now - overdue, approaching the window.',intensity:'personal',strategy:'Last recoverable moment - margin-aware reactivation',value_at_stake:105,why:['quiet well past their usual reorder rhythm']},
+  {customer_id:'MS-31188',churn_prob:.63,predicted_clv:54,bgnbd_p_alive:.7,recency_per_gap:1.25,days_since_last_order:120,frequency:3,refund_rate:0,category:'timing_nudge',action:"Light 'time to restock?' nudge - early and cheap.",intensity:'semi',strategy:'Re-engage early and cheap, before the window closes',value_at_stake:34,why:['quiet well past their usual reorder rhythm']},
+  {customer_id:'MS-61320',churn_prob:.9,predicted_clv:0,bgnbd_p_alive:1,recency_per_gap:null,days_since_last_order:140,frequency:0,refund_rate:0,category:'first_repeat',action:'First-to-second purchase nudge, timed before the window.',intensity:'automated',strategy:'Convert one-time buyers to repeat - the 88% problem',value_at_stake:0,why:['few or no repeat orders']},
+  {customer_id:'MS-80233',churn_prob:.92,predicted_clv:205,bgnbd_p_alive:.12,recency_per_gap:2.4,days_since_last_order:330,frequency:7,refund_rate:0,category:'winback',action:'Last-chance personal win-back, justified by value at stake.',intensity:'personal',strategy:'Last recoverable moment - margin-aware reactivation',value_at_stake:189,why:['low modelled probability of still being active','long silence since last order']},
+  {customer_id:'MS-90117',churn_prob:.6,predicted_clv:130,bgnbd_p_alive:.8,recency_per_gap:.6,days_since_last_order:60,frequency:9,refund_rate:0,category:'loyalty',action:'Healthy and high value - reward to deepen the relationship.',intensity:'personal',strategy:'Reward and deepen - grow LTV of healthy customers',value_at_stake:78,why:['elevated churn score']},
+];
+let DATA=[],RANKED=[],DECISIONS=[],selected=null,liveMode=false,SUMMARY=null,sourceMode='demo';
+const API_BASE='http://localhost:8000';
+
+async function loadData(){
+  // 1) live API (real-time connection)
+  try{
+    const res=await fetch(API_BASE+'/at-risk?limit=200',{cache:'no-store'});
+    if(res.ok){
+      const raw=await res.json(); const arr=raw.customers||[];
+      if(arr.length){ DATA=arr.map(normalize); SUMMARY=raw.summary||null; liveMode=true; sourceMode='api'; return finishLoad(); }
+    }
+  }catch(e){}
+  // 2) static scored JSON beside this file
+  try{
+    const res=await fetch('customer_scores_sample.json',{cache:'no-store'});
+    if(!res.ok) throw new Error('no file');
+    const raw=await res.json();
+    const arr=Array.isArray(raw)?raw:(raw.customers||[]);
+    SUMMARY=Array.isArray(raw)?null:(raw.summary||null);
+    if(!arr.length) throw new Error('empty');
+    DATA=arr.map(normalize); liveMode=true; sourceMode='file';
+  }catch(e){ DATA=SYNTHETIC.map(normalize); liveMode=false; sourceMode='demo'; }
+  finishLoad();
+}
+function finishLoad(){
+  RANKED=[...DATA].sort((a,b)=>b.value_at_stake-a.value_at_stake);
+  selected=RANKED[0].customer_id;
+}
+function normalize(r){
+  return {customer_id:String(r.customer_id),churn_prob:+r.churn_prob||0,predicted_clv:+r.predicted_clv||0,
+    bgnbd_p_alive:r.bgnbd_p_alive==null?1:+r.bgnbd_p_alive,recency_per_gap:r.recency_per_gap==null?null:+r.recency_per_gap,
+    days_since_last_order:+r.days_since_last_order||0,frequency:+r.frequency||0,refund_rate:+r.refund_rate||0,
+    category:r.category||'hold',action:r.action||'Monitor.',intensity:r.intensity||'automated',
+    strategy:r.strategy||'',value_at_stake:+r.value_at_stake||0,segment:r.segment||null,why:Array.isArray(r.why)?r.why:[]};
+}
+function stageOf(r){
+  if(r.frequency===0) return ['One-time buyer','#2FA84F'];
+  if(r.days_since_last_order>299) return ['Lapsed','#9AA3B5'];
+  if(r.recency_per_gap!=null&&r.recency_per_gap>=1.6) return ['Overdue','#F2585B'];
+  if(r.recency_per_gap!=null&&r.recency_per_gap>=1.0) return ['Slowing','#E0982F'];
+  return ['On cadence','#0F9D8C'];
+}
+async function loadDecisions(){try{const r=await window.storage.get('riq_dec');if(r&&r.value)DECISIONS=JSON.parse(r.value);}catch(e){DECISIONS=[];}}
+async function saveDecisions(){try{await window.storage.set('riq_dec',JSON.stringify(DECISIONS));}catch(e){}}
+
+function render(){
+  const tail = SUMMARY?(' of '+fmtInt(SUMMARY.total_at_risk)+' at risk'):'';
+  document.getElementById('src').innerHTML =
+      sourceMode==='api'  ? `<b>Live · API</b> · scored Miracle customers · top ${DATA.length}${tail}`
+    : sourceMode==='file' ? `<b>Live</b> · scored Miracle customers · top ${DATA.length}${tail}`
+    :                       `<b>Demo data</b> · synthetic · start the API or drop customer_scores_sample.json beside this file`;
+  document.getElementById('pulse').className = 'pulse'+(liveMode?'':' demo');
+  const sub=document.getElementById('listsub');
+  if(sub) sub.textContent = (liveMode&&SUMMARY)
+    ? `Top ${DATA.length} by revenue at risk`
+    : 'Ranked by revenue at risk';
+  document.getElementById('list').innerHTML=RANKED.map(c=>{const col=catColor(c.category);
+    return `<div class="row ${c.customer_id===selected?'sel':''}" onclick="select('${c.customer_id}')">
+      <div><div class="cid">${c.customer_id}</div><span class="badge" style="background:${col}">${(CAT[c.category]||{label:c.category}).label}</span></div>
+      <div class="meta"><div class="risk" style="color:${c.churn_prob>=.8?'#F2585B':'#26324d'}">${Math.round(c.churn_prob*100)}%</div><div class="stake mono">${fmt(c.value_at_stake)} at stake</div></div></div>`;}).join('');
+  const c=DATA.find(x=>x.customer_id===selected),[stg,sc]=stageOf(c),col=catColor(c.category);
+  const cost=(COST[c.category]&&(COST[c.category][c.intensity]??COST[c.category].automated))||0, net=c.value_at_stake-cost;
+  const whyHtml=c.why.length?'<ul class="why">'+c.why.map(w=>`<li>${w}</li>`).join('')+'</ul>':'<div style="font-size:12px;color:var(--muted)">Elevated score, no single dominant driver.</div>';
+  const done=DECISIONS.some(d=>d.customer_id===c.customer_id);
+  document.getElementById('detail').innerHTML=`
+    <div class="dhead"><div><div class="cid">${c.customer_id}</div><div class="mono" style="font-size:12px;color:var(--muted);margin-top:2px">predicted CLV ${fmt(c.predicted_clv)}${c.segment?` · <b style="color:var(--accent,#0F9D8C)">${c.segment}</b>`:''}</div></div>
+      <div class="stage" style="border-color:${sc};color:${sc}">● ${stg}</div></div>
+    <div class="blocks">
+      <div class="block"><div class="t">Will they leave?</div><div class="gnum" style="color:${c.churn_prob>=.8?'#F2585B':'var(--ink)'}">${Math.round(c.churn_prob*100)}%</div>
+        <div class="gauge"><i style="width:${Math.round(c.churn_prob*100)}%;background:${c.churn_prob>=.8?'#F2585B':'#E0982F'}"></i></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:8px">churn probability in 299-day window</div></div>
+      <div class="block"><div class="t">Why — behavioural drivers</div>${whyHtml}</div>
+      <div class="block reco"><div class="t">Recommended action</div><span class="badge" style="background:${col}">${(CAT[c.category]||{label:c.category}).label}</span>
+        <div class="cat">${(CAT[c.category]||{label:c.category}).label}</div><div class="strat">${c.strategy}</div><div class="act">${c.action}</div><span class="chip">intensity: ${c.intensity}</span></div>
+      <div class="block"><div class="t">What it's worth</div>
+        <div class="vrow"><span>Revenue at stake</span><span class="mono">${fmt(c.value_at_stake)}</span></div>
+        <div class="vrow"><span>Action cost</span><span class="mono">−${fmt(cost)}</span></div>
+        <div class="vrow"><span>Net if recovered</span><span class="mono">${fmt(net)}</span></div></div>
+    </div>
+    <div class="acts"><button class="btn-primary" onclick="record('${c.customer_id}','treatment')" ${done?'disabled style=opacity:.4':''}>Record decision &amp; act</button>
+      <button class="btn-ghost" onclick="record('${c.customer_id}','holdout')" ${done?'disabled style=opacity:.4':''}>Record as holdout</button></div>
+    <div class="logged" id="logged">${done?'✓ decision recorded — feeding the loop':''}</div>`;
+  renderKpis();renderFly();renderMaturity();
+}
+function renderKpis(){
+  const ar = SUMMARY ? SUMMARY.total_at_risk : DATA.filter(c=>c.churn_prob>=.5).length;
+  const st = SUMMARY ? SUMMARY.total_value_at_stake : DATA.filter(c=>c.churn_prob>=.5).reduce((s,c)=>s+c.value_at_stake,0);
+  const rec=DECISIONS.filter(d=>d.assignment==='treatment'&&d.repurchased).reduce((s,d)=>s+d.rev,0);
+  document.getElementById('k-atrisk').textContent=fmtInt(ar);document.getElementById('k-stake').textContent=fmt(st);
+  document.getElementById('k-recovered').textContent=fmt(rec);document.getElementById('k-decisions').textContent=DECISIONS.length;
+}
+function renderFly(){
+  const el=document.getElementById('flywheel');
+  if(!DECISIONS.length){el.innerHTML='<div class="empty">No decisions yet. Record actions above and this fills in — treatment vs a held-back control — which is how the system learns which action works, and the reward signal a future agent would optimise.</div>';return;}
+  const agg={};DECISIONS.forEach(d=>{const k=d.category+'|'+d.assignment;agg[k]=agg[k]||{n:0,r:0};agg[k].n++;agg[k].r+=d.repurchased?1:0;});
+  const cats=[...new Set(DECISIONS.map(d=>d.category))];
+  el.innerHTML='<div style="padding:0 8px 14px"><table><thead><tr><th>Category</th><th>Treatment</th><th>Holdout</th><th>Uplift</th></tr></thead><tbody>'+
+    cats.map(cat=>{const t=agg[cat+'|treatment'],h=agg[cat+'|holdout'],tr=t?Math.round(t.r/t.n*100):null,hr=h?Math.round(h.r/h.n*100):null,l=(tr!=null&&hr!=null)?tr-hr:null;
+      return `<tr><td><span class="badge" style="background:${catColor(cat)}">${(CAT[cat]||{label:cat}).label}</span></td><td class="mono">${tr!=null?tr+'%':'—'}${t?' ('+t.n+')':''}</td><td class="mono">${hr!=null?hr+'%':'—'}${h?' ('+h.n+')':''}</td><td class="mono" style="color:${l>0?'#1FA86A':'var(--muted)'}">${l!=null?(l>0?'+':'')+l+' pts':'need holdout'}</td></tr>`;}).join('')+'</tbody></table></div>';
+}
+function renderMaturity(){
+  const n=DECISIONS.length;document.getElementById('matfill').style.width=Math.min(8+n*9,100)+'%';
+  ['rung1','rung2','rung3','rung4'].forEach(r=>document.getElementById(r).classList.remove('cur'));
+  let note='The model is "junior" today — it follows rules we wrote. Every recorded decision moves it toward learning on its own.';
+  if(n>=3&&n<7){document.getElementById('rung2').classList.add('on','cur');note='Enough decisions logged to start learning which action wins per customer type.';}
+  else if(n>=7){document.getElementById('rung2').classList.add('on');document.getElementById('rung3').classList.add('on','cur');note='Enough history to begin optimising its own choices (reinforcement learning) — the step before agentic.';}
+  else document.getElementById('rung1').classList.add('cur');
+  document.getElementById('matnote').textContent=note;
+}
+function select(id){selected=id;render();}
+async function record(id,a){const c=DATA.find(x=>x.customer_id===id);const p=a==='treatment'?(CAT[c.category]||{conv:.1}).conv:.10,rep=Math.random()<p;
+  DECISIONS.push({customer_id:id,category:c.category,assignment:a,repurchased:rep,rev:rep?c.predicted_clv:0});await saveDecisions();render();
+  let synced='';
+  if(sourceMode==='api'){try{const r=await fetch(API_BASE+'/decisions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({customer_id:id,category:c.category,churn_prob:c.churn_prob,predicted_clv:c.predicted_clv,action:c.action,intensity:c.intensity,strategy:c.strategy,value_at_stake:c.value_at_stake,why:c.why,assignment:a})});if(r.ok)synced=' · saved to system of record';}catch(e){}}
+  document.getElementById('logged').textContent=`✓ recorded as ${a} · outcome: ${rep?'repurchased (+'+fmt(c.predicted_clv)+')':'no repurchase yet'}${synced}`;}
+async function resetDemo(){DECISIONS=[];await saveDecisions();render();}
+(async function(){await loadData();await loadDecisions();render();})();
+</script>
+</body>
+</html>

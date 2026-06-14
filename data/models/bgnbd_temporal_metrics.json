@@ -1,0 +1,52 @@
+{
+  "model": "bgnbd",
+  "label_scheme": "temporal_split",
+  "split_date": "2025-05-19T01:58:19",
+  "max_date": "2026-03-14T01:58:19",
+  "churn_window_days": 299,
+  "n_customers": 395612,
+  "active_rate": 0.0583,
+  "params": {
+    "r": 0.048633,
+    "alpha": 22.399825,
+    "a": 0.392752,
+    "b": 0.186006
+  },
+  "penalizer_coef": 0.01,
+  "auroc_p_alive_all": 0.4268,
+  "auprc_p_alive_all": 0.0502,
+  "auroc_p_alive_repeat": 0.69,
+  "auprc_p_alive_repeat": 0.3317,
+  "auroc_by_bucket": {
+    "all": {
+      "n": 395612,
+      "active_rate": 0.0583,
+      "auroc": 0.4268,
+      "auprc": 0.0502
+    },
+    "f_cal_ge_1": {
+      "n": 41801,
+      "active_rate": 0.1392,
+      "auroc": 0.69,
+      "auprc": 0.3317
+    },
+    "f_cal_ge_2": {
+      "n": 9513,
+      "active_rate": 0.251,
+      "auroc": 0.7231,
+      "auprc": 0.5125
+    },
+    "f_cal_ge_6": {
+      "n": 799,
+      "active_rate": 0.5457,
+      "auroc": 0.7918,
+      "auprc": 0.8013
+    }
+  },
+  "mae_holdout_purchases": 0.1384,
+  "rmse_holdout_purchases": 0.3812,
+  "pred_total_purchases": 36174,
+  "actual_total_purchases": 29942,
+  "note": "P(alive) is constant 1.0 for f_cal=0 (BG/NBD math: 0 dropout trials = no evidence of death). Report uses f_cal>=1 as the BG/NBD-applicable domain; the f_cal=0 cohort is better served by a separate one-timer model.",
+  "trained": "2026-06-14T13:54:27"
+}

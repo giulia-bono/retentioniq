@@ -1,0 +1,92 @@
+{
+  "base_hyperparams": {
+    "max_depth": 4,
+    "learning_rate": 0.07382900309763066,
+    "min_child_weight": 25,
+    "subsample": 0.8860940017806965,
+    "colsample_bytree": 0.8915333667340338,
+    "reg_alpha": 0.02002086980132638,
+    "reg_lambda": 0.01999514261897351,
+    "gamma": 0.09738301233026535
+  },
+  "churn_window_days": 299,
+  "split_date": "2025-05-19T01:58:19",
+  "experiments": [
+    {
+      "slug": "all",
+      "label": "All customers",
+      "n_train": 316489,
+      "n_test": 79123,
+      "train_churn_rate": 0.9416946560543968,
+      "test_auroc": 0.6862134207089177,
+      "test_auprc": 0.9687784838306174,
+      "best_iteration": 111,
+      "best_f1_threshold": 0.08,
+      "best_f1": 0.9704288629946727,
+      "scale_pos_weight": 0.0619153390865533,
+      "shap_top10": {
+        "bgnbd_e_purchases_299d": 0.2700999975204468,
+        "dsl_per_gap": 0.10459999740123749,
+        "avg_discount_amount": 0.10010000318288803,
+        "dsl_per_t": 0.08460000157356262,
+        "avg_order_value": 0.06769999861717224,
+        "total_revenue": 0.049800001084804535,
+        "days_since_last_order": 0.04919999837875366,
+        "t": 0.036400001496076584,
+        "recency_per_gap": 0.029600000008940697,
+        "value_density": 0.01510000042617321
+      }
+    },
+    {
+      "slug": "total_orders_ge_2",
+      "label": "total_orders >= 2  (no one-timers)",
+      "n_train": 37800,
+      "n_test": 9451,
+      "train_churn_rate": 0.8710582010582011,
+      "test_auroc": 0.7205903192168698,
+      "test_auprc": 0.9399419998141907,
+      "best_iteration": 137,
+      "best_f1_threshold": 0.15999999999999998,
+      "best_f1": 0.9358473212232697,
+      "scale_pos_weight": 0.14802891332077994,
+      "shap_top10": {
+        "bgnbd_p_alive": 0.1785999983549118,
+        "dsl_per_t": 0.1679999977350235,
+        "bgnbd_e_purchases_299d": 0.16060000658035278,
+        "dsl_per_gap": 0.09749999642372131,
+        "days_since_last_order": 0.0794999971985817,
+        "avg_discount_amount": 0.06469999998807907,
+        "t": 0.05550000071525574,
+        "avg_order_value": 0.0471000000834465,
+        "monetary_value": 0.04490000009536743,
+        "total_revenue": 0.043699998408555984
+      }
+    },
+    {
+      "slug": "total_orders_ge_6",
+      "label": "total_orders >= 6  (heavy buyers)",
+      "n_train": 1072,
+      "n_test": 268,
+      "train_churn_rate": 0.5363805970149254,
+      "test_auroc": 0.823168682795699,
+      "test_auprc": 0.8656630824321455,
+      "best_iteration": 122,
+      "best_f1_threshold": 0.43999999999999995,
+      "best_f1": 0.7753623188405797,
+      "scale_pos_weight": 0.8643478260869565,
+      "shap_top10": {
+        "days_since_last_order": 0.5787000060081482,
+        "gap_cv": 0.22269999980926514,
+        "bgnbd_p_alive": 0.2087000012397766,
+        "dsl_per_gap": 0.16169999539852142,
+        "avg_discount_amount": 0.12370000034570694,
+        "revenue_last_30d": 0.11590000241994858,
+        "t": 0.10819999873638153,
+        "recency_per_gap": 0.09520000219345093,
+        "std_days_between_orders": 0.08739999681711197,
+        "total_revenue": 0.0860000029206276
+      }
+    }
+  ],
+  "trained": "2026-06-14T14:49:11"
+}

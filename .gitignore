@@ -62,3 +62,16 @@ htmlcov/
 # Uncomment below if you don't want to commit the lock file:
 # uv.lock
 # poetry.lock
+
+# Scored customer-level outputs (real customer rows — confidential, regenerable)
+data/scored/*.parquet
+data/scored/*.json
+
+# Demo's live data copy (real customer rows — keep local; app falls back to synthetic)
+app/customer_scores_sample.json
+
+# Claude Code local settings (personal / machine-specific)
+.claude/settings.local.json
+
+app/customer_scores*.json
+app/customer_scores*.parquet

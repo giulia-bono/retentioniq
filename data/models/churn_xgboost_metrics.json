@@ -1,0 +1,38 @@
+{
+  "model": "xgboost",
+  "target": "is_churned",
+  "churn_window_days": 299,
+  "feature_cols": [
+    "frequency",
+    "recency",
+    "monetary_value",
+    "avg_order_value",
+    "total_orders",
+    "total_revenue",
+    "avg_days_between_orders",
+    "std_days_between_orders",
+    "refund_count",
+    "total_refund_amount",
+    "refund_rate",
+    "is_one_time",
+    "recency_per_gap",
+    "gap_cv",
+    "value_density",
+    "purchases_per_day_active",
+    "log_monetary_value"
+  ],
+  "dropped_for_leakage": [
+    "days_since_last_order",
+    "t"
+  ],
+  "n_train": 601564,
+  "n_test": 150392,
+  "test_auroc": 0.6463,
+  "test_auprc": 0.6478,
+  "best_iteration": 832,
+  "best_f1_threshold": 0.32,
+  "best_f1": 0.6638,
+  "cv5_auroc_mean": 0.6313,
+  "cv5_auroc_std": 0.0046,
+  "trained": "2026-06-14T13:41:19"
+}
