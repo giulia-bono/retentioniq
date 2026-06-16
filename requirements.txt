@@ -10,6 +10,7 @@ optuna
 shap>=0.50          # 0.50+ fixes base_score parsing for xgboost 3.x (the '[5E-1]' crash)
 joblib
 python-dotenv
+looker-sdk
 
 # API
 fastapi

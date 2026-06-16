@@ -8,7 +8,27 @@
       "Bash(pip install:*)",
       "Bash(python3 -c \":*)",
       "Bash(pytest tests/s9/ -v)",
-      "Bash(PYTHONPATH=. pytest tests/s9/ -v)"
+      "Bash(PYTHONPATH=. pytest tests/s9/ -v)",
+      "PowerShell(Select-String *)",
+      "PowerShell(python -m pip install looker-sdk 2>&1 | Select-Object -Last 10)",
+      "PowerShell(python -c \"from src.ingestion.looker_client import EnvApiSettings, get_sdk; print\\('looker_client imports OK'\\)\")",
+      "PowerShell(python -c \"from src.ingestion.behavioral_features import fetch_order_line_attributes; print\\('behavioral_features imports OK'\\)\")",
+      "PowerShell(python -c \"from src.features.behavioral import build_behavioral_features, join_behavioral_features; print\\('features.behavioral imports OK'\\)\")",
+      "PowerShell(Copy-Item *)",
+      "PowerShell(python -m src.ingestion.behavioral_features)",
+      "PowerShell(python -m src.features.behavioral)",
+      "PowerShell(python -m jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.kernel_name=python3 --ExecutePreprocessor.timeout=3600 notebooks/04_churn_xgboost_temporal.ipynb)",
+      "PowerShell(python -m pip show shap)",
+      "PowerShell(python -m pip install shap)",
+      "PowerShell(python -m pip install lifetimes; python -c \"import shap, lifetimes, xgboost, optuna; print\\('ok'\\)\")",
+      "PowerShell(python -m pip install -r requirements.txt 2>&1 | Select-Object -Last 20)",
+      "PowerShell(python -m src.ingestion.demographic_features)",
+      "PowerShell(python -m src.features.demographics)",
+      "PowerShell(python -c \"import pandas as pd; df=pd.read_csv\\('data/features/customer_demographic_features.csv'\\); print\\(df.shape\\); print\\(df.head\\(\\)\\); print\\(df['gender_clean'].value_counts\\(\\)\\); print\\(df['region'].value_counts\\(\\)\\); print\\(df['is_us'].value_counts\\(\\)\\)\")",
+      "PowerShell(python _tmp_edit_nb.py)",
+      "PowerShell(jupyter nbconvert *)",
+      "PowerShell(python -m jupyter nbconvert --to notebook --execute --inplace notebooks/04_churn_xgboost_temporal.ipynb --ExecutePreprocessor.timeout=1800)",
+      "PowerShell(Get-Process *)"
     ]
   }
 }

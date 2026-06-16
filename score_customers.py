@@ -138,8 +138,8 @@ def main(a):
     # 04_churn_xgboost_temporal (feature_table_temporal.parquet). Auto-pick it.
     feat_path = Path(a.features)
     if use_temporal:
-        cand = feat_path.parent / "feature_table_temporal.parquet"
-        if feat_path.name != "feature_table_temporal.parquet" and cand.exists():
+        cand = feat_path.parent / "feature_table_v2.parquet"
+        if feat_path.name != "feature_table_v2.parquet" and cand.exists():
             feat_path = cand
 
     print(f"loading feature table: {feat_path}")
@@ -285,7 +285,7 @@ def main(a):
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
-    p.add_argument("--features", default="data/features/feature_table.parquet")
+    p.add_argument("--features", default="data/features/feature_table_v2.parquet")
     p.add_argument("--models", default="data/models")
     p.add_argument("--out", default="data/scored")
     p.add_argument("--atrisk-threshold", type=float, default=0.5)
