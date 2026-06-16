@@ -107,12 +107,12 @@ const fmt=n=>'$'+Math.round(n||0).toLocaleString();
 const fmtInt=n=>Math.round(n||0).toLocaleString();
 // synthetic fallback, SAME SHAPE as the scored JSON from score_customers.py
 const SYNTHETIC=[
-  {customer_id:'MS-10472',churn_prob:.81,predicted_clv:168,bgnbd_p_alive:.6,recency_per_gap:2.0,days_since_last_order:190,frequency:5,refund_rate:.28,category:'service_recovery',action:'Reach out about the returns - exchange / fit help. Do NOT discount.',intensity:'personal',strategy:'Fix the cause - protect high-value relationships',value_at_stake:136,why:['returning a high share of orders','quiet well past their usual reorder rhythm']},
-  {customer_id:'MS-20913',churn_prob:.74,predicted_clv:142,bgnbd_p_alive:.55,recency_per_gap:1.9,days_since_last_order:210,frequency:4,refund_rate:.02,category:'winback',action:'Timed win-back now - overdue, approaching the window.',intensity:'personal',strategy:'Last recoverable moment - margin-aware reactivation',value_at_stake:105,why:['quiet well past their usual reorder rhythm']},
-  {customer_id:'MS-31188',churn_prob:.63,predicted_clv:54,bgnbd_p_alive:.7,recency_per_gap:1.25,days_since_last_order:120,frequency:3,refund_rate:0,category:'timing_nudge',action:"Light 'time to restock?' nudge - early and cheap.",intensity:'semi',strategy:'Re-engage early and cheap, before the window closes',value_at_stake:34,why:['quiet well past their usual reorder rhythm']},
-  {customer_id:'MS-61320',churn_prob:.9,predicted_clv:0,bgnbd_p_alive:1,recency_per_gap:null,days_since_last_order:140,frequency:0,refund_rate:0,category:'first_repeat',action:'First-to-second purchase nudge, timed before the window.',intensity:'automated',strategy:'Convert one-time buyers to repeat - the 88% problem',value_at_stake:0,why:['few or no repeat orders']},
-  {customer_id:'MS-80233',churn_prob:.92,predicted_clv:205,bgnbd_p_alive:.12,recency_per_gap:2.4,days_since_last_order:330,frequency:7,refund_rate:0,category:'winback',action:'Last-chance personal win-back, justified by value at stake.',intensity:'personal',strategy:'Last recoverable moment - margin-aware reactivation',value_at_stake:189,why:['low modelled probability of still being active','long silence since last order']},
-  {customer_id:'MS-90117',churn_prob:.6,predicted_clv:130,bgnbd_p_alive:.8,recency_per_gap:.6,days_since_last_order:60,frequency:9,refund_rate:0,category:'loyalty',action:'Healthy and high value - reward to deepen the relationship.',intensity:'personal',strategy:'Reward and deepen - grow LTV of healthy customers',value_at_stake:78,why:['elevated churn score']},
+  {customer_id:'MS-10472',churn_prob:.81,predicted_clv:168,bgnbd_p_alive:.6,recency_per_gap:2.0,dsl_per_gap:2.0,days_since_last_order:190,frequency:5,refund_rate:.28,category:'service_recovery',action:'Reach out about the returns - exchange / fit help. Do NOT discount.',intensity:'personal',strategy:'Fix the cause - protect high-value relationships',value_at_stake:136,why_risk:['returns 28% of orders','well past their usual reorder pace'],why_protective:['6 orders to date']},
+  {customer_id:'MS-20913',churn_prob:.74,predicted_clv:142,bgnbd_p_alive:.55,recency_per_gap:1.9,dsl_per_gap:1.9,days_since_last_order:210,frequency:4,refund_rate:.02,category:'winback',action:'Timed win-back now - overdue, approaching the window.',intensity:'personal',strategy:'Last recoverable moment - margin-aware reactivation',value_at_stake:105,why_risk:['1.9x past their usual reorder gap'],why_protective:['5 orders to date','no returns on record']},
+  {customer_id:'MS-31188',churn_prob:.63,predicted_clv:54,bgnbd_p_alive:.7,recency_per_gap:1.25,dsl_per_gap:1.25,days_since_last_order:120,frequency:3,refund_rate:0,category:'timing_nudge',action:"Light 'time to restock?' nudge - early and cheap.",intensity:'semi',strategy:'Re-engage early and cheap, before the window closes',value_at_stake:34,why_risk:['1.3x past their usual reorder gap'],why_protective:['4 orders to date','no returns on record']},
+  {customer_id:'MS-61320',churn_prob:.9,predicted_clv:0,bgnbd_p_alive:1,recency_per_gap:null,dsl_per_gap:null,days_since_last_order:140,frequency:0,refund_rate:0,category:'first_repeat',action:'First-to-second purchase nudge, timed before the window.',intensity:'automated',strategy:'Convert one-time buyers to repeat - the 88% problem',value_at_stake:0,why_risk:['one purchase so far, no repeat yet'],why_protective:[]},
+  {customer_id:'MS-80233',churn_prob:.92,predicted_clv:205,bgnbd_p_alive:.12,recency_per_gap:2.4,dsl_per_gap:2.4,days_since_last_order:330,frequency:7,refund_rate:0,category:'winback',action:'Last-chance personal win-back, justified by value at stake.',intensity:'personal',strategy:'Last recoverable moment - margin-aware reactivation',value_at_stake:189,why_risk:['no order in 330 days, past the 299-day window','12% modelled chance still active'],why_protective:['predicted lifetime value $205']},
+  {customer_id:'MS-90117',churn_prob:.6,predicted_clv:130,bgnbd_p_alive:.8,recency_per_gap:.6,dsl_per_gap:.6,days_since_last_order:60,frequency:9,refund_rate:0,category:'timing_nudge',action:'Model flags elevated risk with no single cause - light check-in nudge.',intensity:'semi',strategy:'Re-engage early and cheap, before the window closes',value_at_stake:78,why_risk:['model flags elevated churn risk, no single dominant cause'],why_protective:['10 orders to date','no returns on record','ordering on or close to their usual pace']},
 ];
 let DATA=[],RANKED=[],DECISIONS=[],selected=null,liveMode=false,SUMMARY=null;
 
@@ -134,7 +134,7 @@ function normalize(r){
     bgnbd_p_alive:r.bgnbd_p_alive==null?1:+r.bgnbd_p_alive,recency_per_gap:r.recency_per_gap==null?null:+r.recency_per_gap,
     days_since_last_order:+r.days_since_last_order||0,frequency:+r.frequency||0,refund_rate:+r.refund_rate||0,
     category:r.category||'hold',action:r.action||'Monitor.',intensity:r.intensity||'automated',
-    strategy:r.strategy||'',value_at_stake:+r.value_at_stake||0,segment:r.segment||null,why:Array.isArray(r.why)?r.why:[]};
+    strategy:r.strategy||'',value_at_stake:+r.value_at_stake||0,segment:r.segment||null,why:Array.isArray(r.why)?r.why:[],why_risk:Array.isArray(r.why_risk)?r.why_risk:null,why_protective:Array.isArray(r.why_protective)?r.why_protective:null};
 }
 function stageOf(r){
   if(r.frequency===0) return ['One-time buyer','#2FA84F'];
@@ -161,11 +161,12 @@ function render(){
       <div class="meta"><div class="risk" style="color:${c.churn_prob>=.8?'#F2585B':'#26324d'}">${Math.round(c.churn_prob*100)}%</div><div class="stake mono">${fmt(c.value_at_stake)} at stake</div></div></div>`;}).join('');
   const c=DATA.find(x=>x.customer_id===selected),[stg,sc]=stageOf(c),col=catColor(c.category);
   const cost=(COST[c.category]&&(COST[c.category][c.intensity]??COST[c.category].automated))||0, net=c.value_at_stake-cost;
-  const whyHtml=c.why.length?'<ul class="why">'+c.why.map(w=>`<li>${w}</li>`).join('')+'</ul>':'<div style="font-size:12px;color:var(--muted)">Elevated score, no single dominant driver.</div>';
+  const riskList=(c.why_risk!==null)?(c.why_risk||[]):(c.why||[]);
+  const whyHtml=riskList.length?'<ul class="why">'+riskList.map(w=>`<li>${w}</li>`).join('')+'</ul>':'<div style="font-size:12px;color:var(--muted)">No single dominant risk driver.</div>';
   const done=DECISIONS.some(d=>d.customer_id===c.customer_id);
   document.getElementById('detail').innerHTML=`
     <div class="dhead"><div><div class="cid">Customer ${RANKED.findIndex(x=>x.customer_id===selected)+1}</div><div class="mono" style="font-size:12px;color:var(--muted);margin-top:2px">predicted CLV ${fmt(c.predicted_clv)}${c.segment?` · <b style="color:var(--accent,#0F9D8C)">${c.segment}</b>`:''}</div></div>
-      <div class="stage" style="border-color:${sc};color:${sc}">● ${stg}</div></div>
+      </div>
     <div class="blocks">
       <div class="block"><div class="t">Will they leave?</div><div class="gnum" style="color:${c.churn_prob>=.8?'#F2585B':'var(--ink)'}">${Math.round(c.churn_prob*100)}%</div>
         <div class="gauge"><i style="width:${Math.round(c.churn_prob*100)}%;background:${c.churn_prob>=.8?'#F2585B':'#E0982F'}"></i></div>

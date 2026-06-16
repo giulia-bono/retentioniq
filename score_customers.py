@@ -32,6 +32,8 @@ import numpy as np
 import pandas as pd
 
 CHURN_WINDOW = 299
+MIN_OVERDUE_DAYS = 21   # floor before any "overdue" branch fires (short-gap noise)
+HIGH_CHURN = 0.50       # above this, surface honest risk + nudge, never reward/idle
 CLV_HORIZON_DAYS = 365  # 12-month CLV
 
 # ---- recommender (adapted to the real feature_table columns) -------------
@@ -82,7 +84,7 @@ def why_for_row(r):
         risk.append((rr, f"returns {rr*100:.0f}% of orders"))
     if ds > CHURN_WINDOW:
         risk.append((1.0, f"no order in {int(ds)} days, past the {CHURN_WINDOW}-day window"))
-    elif not np.isnan(dsl) and dsl >= 1.5:
+    elif not np.isnan(dsl) and dsl >= 1.5 and ds >= MIN_OVERDUE_DAYS:
         phrase = (f"{dsl:.1f}x past their usual reorder gap" if dsl < 5
                   else "well past their usual reorder pace")
         risk.append((min(dsl / 3, 0.95), phrase))
@@ -90,6 +92,8 @@ def why_for_row(r):
         risk.append((1 - pa, f"{pa*100:.0f}% modelled chance still active"))
     if freq == 0:
         risk.append((0.5, "one purchase so far, no repeat yet"))
+    if not risk and churn >= HIGH_CHURN:
+        risk.append((churn, "model flags elevated churn risk, no single dominant cause"))
     risk.sort(key=lambda x: -x[0])
     risk_phrases = [t for _, t in risk][:3]
 
@@ -101,6 +105,8 @@ def why_for_row(r):
         prot.append((pa, f"{pa*100:.0f}% modelled chance still active"))
     if not np.isnan(dsl) and dsl < 1.0 and freq >= 1:
         prot.append((1 - dsl, "ordering on or close to their usual pace"))
+    if 0 < ds <= MIN_OVERDUE_DAYS and freq >= 1:
+        prot.append((0.45, f"ordered {int(ds)} day{'s' if int(ds) != 1 else ''} ago, recent"))
     if rr == 0 and freq >= 1:
         prot.append((0.4, "no returns on record"))
     if clv >= 200:
@@ -109,7 +115,10 @@ def why_for_row(r):
     prot_phrases = [t for _, t in prot][:3]
 
     if not risk_phrases and not prot_phrases:
-        prot_phrases = ["stable, low-risk profile"]
+        if churn >= HIGH_CHURN:
+            risk_phrases = ["model flags elevated churn risk, no single dominant cause"]
+        else:
+            prot_phrases = ["stable, low-risk profile"]
 
     return {"risk": risk_phrases, "protective": prot_phrases}
 
@@ -130,10 +139,12 @@ def recommend_row(r):
     elif pa <= 0.20 or ds > CHURN_WINDOW:
         if clv >= 120: cat, act = "winback", "Last-chance personal win-back, justified by value at stake."
         else: cat, act, it = "hold", "Likely gone and low value - do not spend.", "none"
-    elif not np.isnan(dsl) and dsl >= 1.6:
+    elif not np.isnan(dsl) and dsl >= 1.6 and ds >= MIN_OVERDUE_DAYS:
         cat, act = "winback", "Timed win-back now - overdue, approaching the window."
-    elif not np.isnan(dsl) and dsl >= 1.0:
+    elif not np.isnan(dsl) and dsl >= 1.0 and ds >= MIN_OVERDUE_DAYS:
         cat, act = "timing_nudge", "Light 'time to restock?' nudge - early and cheap."
+    elif churn >= HIGH_CHURN:
+        cat, act = "timing_nudge", "Model flags elevated risk with no single cause - light check-in nudge."
     elif clv >= 120:
         cat, act = "loyalty", "Healthy and high value - reward to deepen the relationship."
     else:
@@ -172,14 +183,42 @@ def main(a):
     if use_temporal:
         meta = json.load(open(temporal_meta))
         feats = [c.strip() for c in meta["feature_cols"]]   # preserve case; merch dummies have caps/spaces
-        missing = [c for c in feats if c not in df.columns]
-        if missing:
-            raise SystemExit(
-                "The temporal churn model needs features this table does not have:\n"
-                f"  {missing}\n"
-                "Point --features at the temporal feature table exported by "
-                "04_churn_xgboost_temporal (feature_table_temporal.parquet), "
-                "not the basic feature_table.parquet.")
+        # Align the table to the model's training vocabulary. One-hot dummies
+        # (ptype_/pricebucket_/gender_/region_) drift across data refreshes: a
+        # category absent from a slice never gets a column, and case/spacing can
+        # differ ("ptype_Combined Collection" vs lower-case). Match on a
+        # normalised key, rename drifted columns back to the model's names, then
+        # add any genuinely-absent dummy as 0 (the customer simply has none of
+        # that category). Non-dummy core features missing is a real error.
+        DUMMY_PREFIXES = ("ptype_", "pricebucket_", "gender_", "region_")
+        def _norm(c): return c.strip().lower()
+        norm_to_actual = {}
+        for c in df.columns:
+            norm_to_actual.setdefault(_norm(c), c)
+        renamed, filled = [], []
+        for want in feats:
+            if want in df.columns:
+                continue
+            actual = norm_to_actual.get(_norm(want))
+            if actual is not None and actual != want:
+                df = df.rename(columns={actual: want})
+                renamed.append((actual, want))
+            else:
+                df[want] = 0.0
+                filled.append(want)
+        if renamed:
+            print(f"[align] renamed {len(renamed)} drifted column(s) to model names: {renamed}")
+        if filled:
+            non_dummy = [c for c in filled if not c.startswith(DUMMY_PREFIXES)]
+            if non_dummy:
+                raise SystemExit(
+                    "The temporal churn model needs core features this table does "
+                    f"not have (not one-hot dummies):\n  {non_dummy}\n"
+                    "Re-export feature_table_temporal.parquet from "
+                    "04_churn_xgboost_temporal (the hardened, fixed-vocabulary "
+                    "notebook), not the basic feature_table.parquet.")
+            print(f"[align] filled {len(filled)} absent one-hot column(s) with 0 "
+                  f"(category not present in this slice): {filled}")
         bst = xgb.Booster(); bst.load_model(str(temporal_model))
         print(f"scoring churn (TEMPORAL model, {len(feats)} features, leakage fixed)...")
         dm = xgb.DMatrix(df[feats].astype(float).values, feature_names=feats)
