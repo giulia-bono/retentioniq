@@ -52,7 +52,7 @@ def load_order_line_attributes(path: str | Path = ORDER_LINE_PATH) -> pd.DataFra
     return df
 
 
-def build_behavioral_features(lines: pd.DataFrame) -> pd.DataFrame:
+def build_behavioral_features(lines: pd.DataFrame, cutoff_date=None) -> pd.DataFrame:
     """Aggregate order-line attributes to one row per customer.
 
     - ``top_product_type``: most frequently purchased collection/product type
@@ -66,7 +66,12 @@ def build_behavioral_features(lines: pd.DataFrame) -> pd.DataFrame:
     ``NON_PRODUCT_TYPES``) are dropped first and "Detergent sheets" /
     "Detergent Sheets" are normalized to a single casing before the mode is
     taken.
+
+    Pass ``cutoff_date`` to restrict to orders on or before that date so that
+    post-split order behaviour does not leak into training features.
     """
+    if cutoff_date is not None:
+        lines = lines[lines["order_date"] <= pd.Timestamp(cutoff_date)]
     lines = lines[~lines["product_type"].isin(NON_PRODUCT_TYPES)].copy()
     lines["product_type"] = lines["product_type"].str.strip().str.title()
 

@@ -48,5 +48,5 @@
   "pred_total_purchases": 36174,
   "actual_total_purchases": 29942,
   "note": "P(alive) is constant 1.0 for f_cal=0 (BG/NBD math: 0 dropout trials = no evidence of death). Report uses f_cal>=1 as the BG/NBD-applicable domain; the f_cal=0 cohort is better served by a separate one-timer model.",
-  "trained": "2026-06-14T13:54:27"
+  "trained": "2026-06-16T15:26:30"
 }

@@ -155,16 +155,16 @@ function render(){
   if(sub) sub.textContent = (liveMode&&SUMMARY)
     ? `Top ${DATA.length} by revenue at risk`
     : 'Ranked by revenue at risk';
-  document.getElementById('list').innerHTML=RANKED.map(c=>{const col=catColor(c.category);
+  document.getElementById('list').innerHTML=RANKED.map((c,i)=>{const col=catColor(c.category);
     return `<div class="row ${c.customer_id===selected?'sel':''}" onclick="select('${c.customer_id}')">
-      <div><div class="cid">${c.customer_id}</div><span class="badge" style="background:${col}">${(CAT[c.category]||{label:c.category}).label}</span></div>
+      <div><div class="cid">Customer ${i+1}</div><span class="badge" style="background:${col}">${(CAT[c.category]||{label:c.category}).label}</span></div>
       <div class="meta"><div class="risk" style="color:${c.churn_prob>=.8?'#F2585B':'#26324d'}">${Math.round(c.churn_prob*100)}%</div><div class="stake mono">${fmt(c.value_at_stake)} at stake</div></div></div>`;}).join('');
   const c=DATA.find(x=>x.customer_id===selected),[stg,sc]=stageOf(c),col=catColor(c.category);
   const cost=(COST[c.category]&&(COST[c.category][c.intensity]??COST[c.category].automated))||0, net=c.value_at_stake-cost;
   const whyHtml=c.why.length?'<ul class="why">'+c.why.map(w=>`<li>${w}</li>`).join('')+'</ul>':'<div style="font-size:12px;color:var(--muted)">Elevated score, no single dominant driver.</div>';
   const done=DECISIONS.some(d=>d.customer_id===c.customer_id);
   document.getElementById('detail').innerHTML=`
-    <div class="dhead"><div><div class="cid">${c.customer_id}</div><div class="mono" style="font-size:12px;color:var(--muted);margin-top:2px">predicted CLV ${fmt(c.predicted_clv)}${c.segment?` · <b style="color:var(--accent,#0F9D8C)">${c.segment}</b>`:''}</div></div>
+    <div class="dhead"><div><div class="cid">Customer ${RANKED.findIndex(x=>x.customer_id===selected)+1}</div><div class="mono" style="font-size:12px;color:var(--muted);margin-top:2px">predicted CLV ${fmt(c.predicted_clv)}${c.segment?` · <b style="color:var(--accent,#0F9D8C)">${c.segment}</b>`:''}</div></div>
       <div class="stage" style="border-color:${sc};color:${sc}">● ${stg}</div></div>
     <div class="blocks">
       <div class="block"><div class="t">Will they leave?</div><div class="gnum" style="color:${c.churn_prob>=.8?'#F2585B':'var(--ink)'}">${Math.round(c.churn_prob*100)}%</div>

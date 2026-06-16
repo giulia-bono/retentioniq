@@ -28,7 +28,10 @@
       "PowerShell(python _tmp_edit_nb.py)",
       "PowerShell(jupyter nbconvert *)",
       "PowerShell(python -m jupyter nbconvert --to notebook --execute --inplace notebooks/04_churn_xgboost_temporal.ipynb --ExecutePreprocessor.timeout=1800)",
-      "PowerShell(Get-Process *)"
+      "PowerShell(Get-Process *)",
+      "PowerShell(Rename-Item *)",
+      "PowerShell(python -c \"import xgboost; print\\(xgboost.__version__\\)\")",
+      "PowerShell(python -c \"import xgboost as xgb; dm = xgb.DMatrix\\([[1,2],[3,4]], label=[0,1]\\); m = xgb.train\\({'tree_method':'hist','device':'cuda','nthread':1}, dm, num_boost_round=1\\); print\\('GPU OK'\\)\" 2>&1)"
     ]
   }
 }

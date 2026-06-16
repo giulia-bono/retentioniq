@@ -59,47 +59,66 @@ def intensity(clv):
     return "personal" if clv >= 120 else "semi" if clv >= 30 else "automated"
 
 def why_for_row(r):
-    """Behavioural drivers from the signals that exist in the table.
-    Robust and version-proof, unlike SHAP TreeExplainer on some xgboost builds."""
-    reasons = []
+    """Behavioural drivers split into risk (what pushes the customer toward churn)
+    and protective (what is keeping them). Quantified and version-proof, unlike
+    SHAP TreeExplainer on some xgboost builds. Returns {"risk": [...], "protective": [...]}."""
     churn = float(r.get("churn_prob", 0.0) or 0.0)
     clv   = float(r.get("predicted_clv", 0.0) or 0.0)
     freq  = float(r.get("frequency", 0) or 0)
     pa    = float(r.get("bgnbd_p_alive", 1) or 1)
     ds    = float(r.get("days_since_last_order", 0) or 0)
+    rr    = float(r.get("refund_rate", 0) or 0)
     rpg   = r.get("recency_per_gap", np.nan)
     rpg   = float(rpg) if rpg is not None and not (isinstance(rpg, float) and np.isnan(rpg)) else np.nan
+    # dsl_per_gap = days since last order / typical gap = how OVERDUE they are.
+    # (recency_per_gap is lifetime span in gap-units, not overdue-ness, so it is
+    # not the right signal for "past their reorder pace".)
+    dsl   = r.get("dsl_per_gap", np.nan)
+    dsl   = float(dsl) if dsl is not None and not (isinstance(dsl, float) and np.isnan(dsl)) else np.nan
 
-    # risk drivers
-    if float(r.get("refund_rate", 0) or 0) >= 0.15:
-        reasons.append(REASON["refund_rate"])
+    # --- risk drivers as (severity, quantified phrase); strongest leads ---
+    risk = []
+    if rr >= 0.15:
+        risk.append((rr, f"returns {rr*100:.0f}% of orders"))
     if ds > CHURN_WINDOW:
-        reasons.append(REASON["days_since_last_order"])
-    elif not np.isnan(rpg) and rpg >= 1.0:
-        reasons.append(REASON["recency_per_gap"])
-    if freq == 0:
-        reasons.append(REASON["frequency"])
+        risk.append((1.0, f"no order in {int(ds)} days, past the {CHURN_WINDOW}-day window"))
+    elif not np.isnan(dsl) and dsl >= 1.5:
+        phrase = (f"{dsl:.1f}x past their usual reorder gap" if dsl < 5
+                  else "well past their usual reorder pace")
+        risk.append((min(dsl / 3, 0.95), phrase))
     if pa <= 0.20:
-        reasons.append(REASON["bgnbd_p_alive"])
+        risk.append((1 - pa, f"{pa*100:.0f}% modelled chance still active"))
+    if freq == 0:
+        risk.append((0.5, "one purchase so far, no repeat yet"))
+    risk.sort(key=lambda x: -x[0])
+    risk_phrases = [t for _, t in risk][:3]
 
-    # No risk driver fired: this is a healthy/valuable customer. Explain with the
-    # positive signals so the "why" matches the customer (don't claim high churn).
-    if not reasons:
-        if freq >= 1:
-            reasons.append("repeat purchase history")
-        if pa >= 0.60:
-            reasons.append("likely still active")
-        if clv >= 200:
-            reasons.append("high predicted lifetime value")
-        if not reasons:
-            reasons.append("elevated churn score" if churn >= 0.50 else "stable, low-risk profile")
-    return reasons[:3]
+    # --- protective drivers as (strength, quantified phrase); what's keeping them ---
+    prot = []
+    if freq >= 1:
+        prot.append((freq, f"{int(freq) + 1} orders to date"))
+    if pa >= 0.60:
+        prot.append((pa, f"{pa*100:.0f}% modelled chance still active"))
+    if not np.isnan(dsl) and dsl < 1.0 and freq >= 1:
+        prot.append((1 - dsl, "ordering on or close to their usual pace"))
+    if rr == 0 and freq >= 1:
+        prot.append((0.4, "no returns on record"))
+    if clv >= 200:
+        prot.append((min(clv / 1000, 1.0), f"predicted lifetime value ${clv:,.0f}"))
+    prot.sort(key=lambda x: -x[0])
+    prot_phrases = [t for _, t in prot][:3]
+
+    if not risk_phrases and not prot_phrases:
+        prot_phrases = ["stable, low-risk profile"]
+
+    return {"risk": risk_phrases, "protective": prot_phrases}
 
 def recommend_row(r):
     clv = float(r.get("predicted_clv", 0.0))
     churn = float(r.get("churn_prob", 0.0))
     rr = float(r.get("refund_rate", 0.0) or 0.0)
     rpg = float(r.get("recency_per_gap", np.nan))
+    dsl = float(r.get("dsl_per_gap", np.nan))   # overdue = days since last / typical gap
     pa = float(r.get("bgnbd_p_alive", 1.0))
     ds = float(r.get("days_since_last_order", 0.0) or 0.0)
     freq = float(r.get("frequency", 0.0) or 0.0)
@@ -111,9 +130,9 @@ def recommend_row(r):
     elif pa <= 0.20 or ds > CHURN_WINDOW:
         if clv >= 120: cat, act = "winback", "Last-chance personal win-back, justified by value at stake."
         else: cat, act, it = "hold", "Likely gone and low value - do not spend.", "none"
-    elif not np.isnan(rpg) and rpg >= 1.6:
+    elif not np.isnan(dsl) and dsl >= 1.6:
         cat, act = "winback", "Timed win-back now - overdue, approaching the window."
-    elif not np.isnan(rpg) and rpg >= 1.0:
+    elif not np.isnan(dsl) and dsl >= 1.0:
         cat, act = "timing_nudge", "Light 'time to restock?' nudge - early and cheap."
     elif clv >= 120:
         cat, act = "loyalty", "Healthy and high value - reward to deepen the relationship."
@@ -138,19 +157,21 @@ def main(a):
     # 04_churn_xgboost_temporal (feature_table_temporal.parquet). Auto-pick it.
     feat_path = Path(a.features)
     if use_temporal:
-        cand = feat_path.parent / "feature_table_v2.parquet"
-        if feat_path.name != "feature_table_v2.parquet" and cand.exists():
+        cand = feat_path.parent / "feature_table_temporal.parquet"
+        if feat_path.name != "feature_table_temporal.parquet" and cand.exists():
             feat_path = cand
 
     print(f"loading feature table: {feat_path}")
     df = pd.read_parquet(feat_path)
-    df.columns = [c.strip().lower() for c in df.columns]
+    df.columns = [c.strip() for c in df.columns]          # trim only; preserve case
+    if not use_temporal:
+        df.columns = [c.lower() for c in df.columns]      # snapshot model expects lower-snake columns
     df["customer_id"] = df["customer_id"].astype(str)
 
     # ---- churn probability (XGBoost) ----
     if use_temporal:
         meta = json.load(open(temporal_meta))
-        feats = list(meta["feature_cols"])            # temporal nb uses lower_snake names already
+        feats = [c.strip() for c in meta["feature_cols"]]   # preserve case; merch dummies have caps/spaces
         missing = [c for c in feats if c not in df.columns]
         if missing:
             raise SystemExit(
@@ -203,6 +224,12 @@ def main(a):
     if "recency_per_gap" not in df.columns:
         avg_gap = (df["recency"] / df["frequency"].replace(0, np.nan))
         df["recency_per_gap"] = df["days_since_last_order"] / avg_gap
+    if "dsl_per_gap" not in df.columns:
+        if "avg_days_between_orders" in df.columns:
+            df["dsl_per_gap"] = df["days_since_last_order"] / (df["avg_days_between_orders"] + 1.0)
+        else:
+            _ag = (df["recency"] / df["frequency"].replace(0, np.nan))
+            df["dsl_per_gap"] = df["days_since_last_order"] / _ag
 
     # ---- recommendation per customer ----
     print("recommending...")
@@ -238,7 +265,7 @@ def main(a):
     # ---- write outputs ----
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
     cols = ["customer_id", "churn_prob", "predicted_clv", "bgnbd_p_alive",
-            "recency_per_gap", "days_since_last_order", "frequency", "refund_rate",
+            "recency_per_gap", "dsl_per_gap", "days_since_last_order", "frequency", "refund_rate",
             "category", "action", "intensity", "strategy", "value_at_stake", "why"]
     if "segment" in df.columns:
         cols.insert(cols.index("category"), "segment")
@@ -253,7 +280,10 @@ def main(a):
     actionable = scored[is_act].sort_values("value_at_stake", ascending=False)
     rest = scored[~is_act].sort_values("value_at_stake", ascending=False)
     sample = pd.concat([actionable, rest]).head(a.sample_n).copy()
-    sample["why"] = sample.apply(why_for_row, axis=1)   # behavioural drivers for the UI
+    _wf = list(sample.apply(why_for_row, axis=1))           # behavioural drivers for the UI
+    sample["why_risk"] = [w["risk"] for w in _wf]
+    sample["why_protective"] = [w["protective"] for w in _wf]
+    sample["why"] = [w["risk"] if w["risk"] else w["protective"] for w in _wf]  # flat, backward compat
 
     # ---- population summary: value-based totals the header shows (not churn-gated) ----
     has_value = scored["value_at_stake"] > 0
@@ -285,7 +315,7 @@ def main(a):
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
-    p.add_argument("--features", default="data/features/feature_table_v2.parquet")
+    p.add_argument("--features", default="data/features/feature_table.parquet")
     p.add_argument("--models", default="data/models")
     p.add_argument("--out", default="data/scored")
     p.add_argument("--atrisk-threshold", type=float, default=0.5)
