@@ -62,6 +62,41 @@
   .matbar{height:8px;background:#EDEFF5;border-radius:6px;overflow:hidden;margin:6px 18px}.matbar i{display:block;height:100%;background:linear-gradient(90deg,var(--ink),var(--coral));transition:width .5s}
   .matnote{font-size:11px;color:var(--muted);padding:8px 18px 16px}
   .foot{font-size:11px;color:var(--muted);text-align:center;margin:24px 0 8px}.btn-reset{background:transparent;color:var(--muted);font-size:11px;padding:6px 0}
+  .chipbar{display:flex;flex-wrap:wrap;gap:6px;padding:0 18px 12px}
+  .fchip{font-size:11px;font-weight:600;padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink2);cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:.12s}
+  .fchip:hover{border-color:#c3cad8}
+  .fchip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .fchip .n{opacity:.55;font-weight:500}
+  .fchip .dot{width:7px;height:7px;border-radius:50%}
+  table.plays td.r,table.plays th.r{text-align:right}
+  table.plays tr.clk{cursor:pointer}
+  table.plays tr.clk:hover td{background:#f6f8fc}
+  table.plays tr.on td{background:#eef1f8}
+  table.plays tr.tot td{font-weight:800;border-top:2px solid var(--line);border-bottom:none;background:#fbfcfe}
+  .pname{display:inline-flex;align-items:center;gap:8px;font-weight:600}
+  .pdot{width:9px;height:9px;border-radius:50%;flex:none}
+  .ntag{font-size:9px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:1px 5px;margin-left:6px}
+  .gtop{display:grid;grid-template-columns:1fr 1.25fr;gap:14px;margin-top:6px}@media(max-width:720px){.gtop{grid-template-columns:1fr}}
+  .gcard{border:1px solid var(--line);border-radius:14px;padding:16px}
+  .gbig{font-family:'Bricolage Grotesque';font-weight:800;font-size:40px;line-height:1;margin-top:2px}
+  .rbadge{display:inline-block;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;margin-top:8px}
+  .rbadge.high{background:#FDE8E9;color:#C0353A}.rbadge.mid{background:#FBF0DD;color:#9A6712}.rbadge.low{background:#E4F6EC;color:#1B7A45}
+  .gstats{display:flex;flex-wrap:wrap;gap:16px 22px;margin-top:14px}
+  .gstat .l{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}.gstat .v{font-weight:700;font-size:15px;margin-top:2px}
+  .greco{background:#EEF3FF;border:1px solid #DCE6FF;border-radius:14px;padding:16px}
+  .greco .t{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#3552C7;font-weight:700;margin-bottom:8px}
+  .greco .a{font-size:14px;line-height:1.55;color:#1c2a4d}
+  .dz{display:grid;grid-template-columns:172px 1fr 52px;align-items:center;gap:12px;margin:9px 0}
+  .dz .lab{font-size:12.5px;color:var(--ink2)}
+  .dztrack{height:14px;background:#EEF1F7;border-radius:7px;overflow:hidden}
+  .dztrack i{display:block;height:100%;border-radius:7px}.dztrack i.up{background:#E98A8C}.dztrack i.dn{background:#9FCB86}
+  .dznum{font-family:ui-monospace,monospace;font-size:12px;text-align:right;font-weight:600}.dznum.up{color:#C0353A}.dznum.dn{color:#1B7A45}
+  .vbar{display:grid;grid-template-columns:128px 1fr 86px;align-items:center;gap:10px;margin:7px 0;cursor:pointer}
+  .vbar:hover .vname{text-decoration:underline}
+  .vname{font-size:12.5px;display:inline-flex;align-items:center;gap:7px}
+  .vtrack{height:10px;background:#EEF1F7;border-radius:5px;overflow:hidden}.vtrack i{display:block;height:100%}
+  .vval{font-size:12px;text-align:right;font-weight:600;font-family:ui-monospace,monospace}
+  .dzlegend{font-size:11px;color:var(--muted);margin-top:12px}
 </style>
 </head>
 <body>
@@ -75,6 +110,13 @@
     <div class="kpi"><div class="lab">Revenue at stake</div><div class="val accent" id="k-stake">$0</div></div>
     <div class="kpi"><div class="lab">Value recovered</div><div class="val good" id="k-recovered">$0</div></div>
     <div class="kpi"><div class="lab">Decisions recorded</div><div class="val" id="k-decisions">0</div></div>
+  </div>
+  <div class="tag">Book of business — grouped by retention play</div>
+  <div class="panel" style="margin-bottom:4px">
+    <div class="ph"><h2 class="display">Risk and recommended play, by group</h2></div>
+    <div class="psub">Every scored customer is routed to one play. Pick a group to see its blended risk, recommended action, and what separates it from the average repeat buyer. Metrics are full-population.</div>
+    <div class="chipbar" id="chipbar"></div>
+    <div id="plays" style="padding:4px 18px 18px"></div>
   </div>
   <div class="tag">Predict · explain · recommend</div>
   <div class="grid">
@@ -107,14 +149,15 @@ const fmt=n=>'$'+Math.round(n||0).toLocaleString();
 const fmtInt=n=>Math.round(n||0).toLocaleString();
 // synthetic fallback, SAME SHAPE as the scored JSON from score_customers.py
 const SYNTHETIC=[
-  {customer_id:'MS-10472',churn_prob:.81,predicted_clv:168,bgnbd_p_alive:.6,recency_per_gap:2.0,dsl_per_gap:2.0,days_since_last_order:190,frequency:5,refund_rate:.28,category:'service_recovery',action:'Reach out about the returns - exchange / fit help. Do NOT discount.',intensity:'personal',strategy:'Fix the cause - protect high-value relationships',value_at_stake:136,why_risk:['returns 28% of orders','well past their usual reorder pace'],why_protective:['6 orders to date']},
-  {customer_id:'MS-20913',churn_prob:.74,predicted_clv:142,bgnbd_p_alive:.55,recency_per_gap:1.9,dsl_per_gap:1.9,days_since_last_order:210,frequency:4,refund_rate:.02,category:'winback',action:'Timed win-back now - overdue, approaching the window.',intensity:'personal',strategy:'Last recoverable moment - margin-aware reactivation',value_at_stake:105,why_risk:['1.9x past their usual reorder gap'],why_protective:['5 orders to date','no returns on record']},
-  {customer_id:'MS-31188',churn_prob:.63,predicted_clv:54,bgnbd_p_alive:.7,recency_per_gap:1.25,dsl_per_gap:1.25,days_since_last_order:120,frequency:3,refund_rate:0,category:'timing_nudge',action:"Light 'time to restock?' nudge - early and cheap.",intensity:'semi',strategy:'Re-engage early and cheap, before the window closes',value_at_stake:34,why_risk:['1.3x past their usual reorder gap'],why_protective:['4 orders to date','no returns on record']},
-  {customer_id:'MS-61320',churn_prob:.9,predicted_clv:0,bgnbd_p_alive:1,recency_per_gap:null,dsl_per_gap:null,days_since_last_order:140,frequency:0,refund_rate:0,category:'first_repeat',action:'First-to-second purchase nudge, timed before the window.',intensity:'automated',strategy:'Convert one-time buyers to repeat - the 88% problem',value_at_stake:0,why_risk:['one purchase so far, no repeat yet'],why_protective:[]},
-  {customer_id:'MS-80233',churn_prob:.92,predicted_clv:205,bgnbd_p_alive:.12,recency_per_gap:2.4,dsl_per_gap:2.4,days_since_last_order:330,frequency:7,refund_rate:0,category:'winback',action:'Last-chance personal win-back, justified by value at stake.',intensity:'personal',strategy:'Last recoverable moment - margin-aware reactivation',value_at_stake:189,why_risk:['no order in 330 days, past the 299-day window','12% modelled chance still active'],why_protective:['predicted lifetime value $205']},
-  {customer_id:'MS-90117',churn_prob:.6,predicted_clv:130,bgnbd_p_alive:.8,recency_per_gap:.6,dsl_per_gap:.6,days_since_last_order:60,frequency:9,refund_rate:0,category:'timing_nudge',action:'Model flags elevated risk with no single cause - light check-in nudge.',intensity:'semi',strategy:'Re-engage early and cheap, before the window closes',value_at_stake:78,why_risk:['model flags elevated churn risk, no single dominant cause'],why_protective:['10 orders to date','no returns on record','ordering on or close to their usual pace']},
+  {customer_id:'MS-10472',churn_prob:.81,predicted_clv:168,bgnbd_p_alive:.6,recency_per_gap:2.0,days_since_last_order:190,frequency:5,refund_rate:.28,category:'service_recovery',action:'Reach out about the returns - exchange / fit help. Do NOT discount.',intensity:'personal',strategy:'Fix the cause - protect high-value relationships',value_at_stake:136,why:['returning a high share of orders','quiet well past their usual reorder rhythm']},
+  {customer_id:'MS-20913',churn_prob:.74,predicted_clv:142,bgnbd_p_alive:.55,recency_per_gap:1.9,days_since_last_order:210,frequency:4,refund_rate:.02,category:'winback',action:'Timed win-back now - overdue, approaching the window.',intensity:'personal',strategy:'Last recoverable moment - margin-aware reactivation',value_at_stake:105,why:['quiet well past their usual reorder rhythm']},
+  {customer_id:'MS-31188',churn_prob:.63,predicted_clv:54,bgnbd_p_alive:.7,recency_per_gap:1.25,days_since_last_order:120,frequency:3,refund_rate:0,category:'timing_nudge',action:"Light 'time to restock?' nudge - early and cheap.",intensity:'semi',strategy:'Re-engage early and cheap, before the window closes',value_at_stake:34,why:['quiet well past their usual reorder rhythm']},
+  {customer_id:'MS-61320',churn_prob:.9,predicted_clv:0,bgnbd_p_alive:1,recency_per_gap:null,days_since_last_order:140,frequency:0,refund_rate:0,category:'first_repeat',action:'First-to-second purchase nudge, timed before the window.',intensity:'automated',strategy:'Convert one-time buyers to repeat - the 88% problem',value_at_stake:0,why:['few or no repeat orders']},
+  {customer_id:'MS-80233',churn_prob:.92,predicted_clv:205,bgnbd_p_alive:.12,recency_per_gap:2.4,days_since_last_order:330,frequency:7,refund_rate:0,category:'winback',action:'Last-chance personal win-back, justified by value at stake.',intensity:'personal',strategy:'Last recoverable moment - margin-aware reactivation',value_at_stake:189,why:['low modelled probability of still being active','long silence since last order']},
+  {customer_id:'MS-90117',churn_prob:.6,predicted_clv:130,bgnbd_p_alive:.8,recency_per_gap:.6,days_since_last_order:60,frequency:9,refund_rate:0,category:'loyalty',action:'Healthy and high value - reward to deepen the relationship.',intensity:'personal',strategy:'Reward and deepen - grow LTV of healthy customers',value_at_stake:78,why:['elevated churn score']},
 ];
-let DATA=[],RANKED=[],DECISIONS=[],selected=null,liveMode=false,SUMMARY=null;
+let DATA=[],RANKED=[],DECISIONS=[],selected=null,liveMode=false,SUMMARY=null,catFilter='all';
+const ACT_CATS=['winback','loyalty','timing_nudge','service_recovery'];
 
 async function loadData(){
   try{
@@ -132,9 +175,12 @@ async function loadData(){
 function normalize(r){
   return {customer_id:String(r.customer_id),churn_prob:+r.churn_prob||0,predicted_clv:+r.predicted_clv||0,
     bgnbd_p_alive:r.bgnbd_p_alive==null?1:+r.bgnbd_p_alive,recency_per_gap:r.recency_per_gap==null?null:+r.recency_per_gap,
+    dsl_per_gap:r.dsl_per_gap==null?null:+r.dsl_per_gap,
     days_since_last_order:+r.days_since_last_order||0,frequency:+r.frequency||0,refund_rate:+r.refund_rate||0,
     category:r.category||'hold',action:r.action||'Monitor.',intensity:r.intensity||'automated',
-    strategy:r.strategy||'',value_at_stake:+r.value_at_stake||0,segment:r.segment||null,why:Array.isArray(r.why)?r.why:[],why_risk:Array.isArray(r.why_risk)?r.why_risk:null,why_protective:Array.isArray(r.why_protective)?r.why_protective:null};
+    strategy:r.strategy||'',value_at_stake:+r.value_at_stake||0,segment:r.segment||null,why:Array.isArray(r.why)?r.why:[],
+    why_risk:Array.isArray(r.why_risk)?r.why_risk:[],why_protective:Array.isArray(r.why_protective)?r.why_protective:[],
+    why_split:('why_risk' in r)||('why_protective' in r)};
 }
 function stageOf(r){
   if(r.frequency===0) return ['One-time buyer','#2FA84F'];
@@ -151,18 +197,45 @@ function render(){
     ? `<b>Live</b> · scored Miracle customers · top ${DATA.length}${SUMMARY?(' of '+fmtInt(SUMMARY.total_at_risk)+' at risk'):''}`
     : `<b>Demo data</b> · synthetic · drop customer_scores_sample.json beside this file for real data`;
   document.getElementById('pulse').className = 'pulse'+(liveMode?'':' demo');
+  renderPlays();
+  const b=getBreakdown();
   const sub=document.getElementById('listsub');
-  if(sub) sub.textContent = (liveMode&&SUMMARY)
-    ? `Top ${DATA.length} by revenue at risk`
-    : 'Ranked by revenue at risk';
-  document.getElementById('list').innerHTML=RANKED.map((c,i)=>{const col=catColor(c.category);
+  if(sub){
+    if(catFilter!=='all' && b[catFilter]){const v=b[catFilter];
+      sub.innerHTML=`<b style="color:${catColor(catFilter)}">${(CAT[catFilter]||{label:catFilter}).label}</b> · ${fmtInt(v.count)} customers · ${fmt(v.value_at_stake)} at stake · ${Math.round(v.avg_churn*100)}% avg churn · avg CLV ${fmt(v.avg_clv)}`;
+    } else {
+      sub.textContent=(liveMode&&SUMMARY)?`Top ${DATA.length} by revenue at risk`:'Ranked by revenue at risk';
+    }
+  }
+  const view = catFilter==='all'?RANKED:RANKED.filter(c=>c.category===catFilter);
+  document.getElementById('list').innerHTML = view.length ? view.map(c=>{const i=RANKED.indexOf(c);const col=catColor(c.category);
     return `<div class="row ${c.customer_id===selected?'sel':''}" onclick="select('${c.customer_id}')">
       <div><div class="cid">Customer ${i+1}</div><span class="badge" style="background:${col}">${(CAT[c.category]||{label:c.category}).label}</span></div>
-      <div class="meta"><div class="risk" style="color:${c.churn_prob>=.8?'#F2585B':'#26324d'}">${Math.round(c.churn_prob*100)}%</div><div class="stake mono">${fmt(c.value_at_stake)} at stake</div></div></div>`;}).join('');
+      <div class="meta"><div class="risk" style="color:${c.churn_prob>=.8?'#F2585B':'#26324d'}">${Math.round(c.churn_prob*100)}%</div><div class="stake mono">${fmt(c.value_at_stake)} at stake</div><div class="stake mono">CLV ${fmt(c.predicted_clv)}</div></div></div>`;}).join('')
+    : '<div class="empty">No customers in this play in the current top sample.</div>';
   const c=DATA.find(x=>x.customer_id===selected),[stg,sc]=stageOf(c),col=catColor(c.category);
   const cost=(COST[c.category]&&(COST[c.category][c.intensity]??COST[c.category].automated))||0, net=c.value_at_stake-cost;
-  const riskList=(c.why_risk!==null)?(c.why_risk||[]):(c.why||[]);
-  const whyHtml=riskList.length?'<ul class="why">'+riskList.map(w=>`<li>${w}</li>`).join('')+'</ul>':'<div style="font-size:12px;color:var(--muted)">No single dominant risk driver.</div>';
+  // Why: if the JSON carries the risk/protective split, show the two labeled groups;
+  // otherwise (older scorer output) fall back to a neutral behavioural-drivers list.
+  const whyGroup=(title,items,color)=> (!items||!items.length) ? '' :
+    `<div style="margin-bottom:9px"><div style="font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:${color};margin-bottom:3px">${title}</div>`
+    +'<ul class="why">'+items.map(w=>`<li>${w}</li>`).join('')+'</ul></div>';
+  let whyHtml;
+  if(c.why_split){
+    whyHtml = whyGroup('Pushing them to leave', c.why_risk, '#F2585B')
+            + whyGroup("What's keeping them", c.why_protective, '#0F9D8C');
+  } else {
+    whyHtml = c.why.length ? '<ul class="why">'+c.why.map(w=>`<li>${w}</li>`).join('')+'</ul>' : '';
+  }
+  if(!whyHtml) whyHtml = '<div style="font-size:12px;color:var(--muted)">Stable, low-risk profile.</div>';
+  // Evidence strip: the raw numbers behind the why.
+  const chip=(label,val)=>`<span class="chip"><span style="color:var(--muted);font-weight:500">${label}</span> ${val}</span>`;
+  const evidence=[
+    chip('Last order', c.days_since_last_order+'d ago'),
+    (c.dsl_per_gap!=null && c.frequency>=1) ? chip('Reorder pace', c.dsl_per_gap.toFixed(1)+'x usual gap') : '',
+    chip('Orders', c.frequency+1),
+    chip('Returns', Math.round(c.refund_rate*100)+'%'),
+  ].filter(Boolean).join(' ');
   const done=DECISIONS.some(d=>d.customer_id===c.customer_id);
   document.getElementById('detail').innerHTML=`
     <div class="dhead"><div><div class="cid">Customer ${RANKED.findIndex(x=>x.customer_id===selected)+1}</div><div class="mono" style="font-size:12px;color:var(--muted);margin-top:2px">predicted CLV ${fmt(c.predicted_clv)}${c.segment?` · <b style="color:var(--accent,#0F9D8C)">${c.segment}</b>`:''}</div></div>
@@ -179,10 +252,75 @@ function render(){
         <div class="vrow"><span>Action cost</span><span class="mono">−${fmt(cost)}</span></div>
         <div class="vrow"><span>Net if recovered</span><span class="mono">${fmt(net)}</span></div></div>
     </div>
+    <div style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:2px">What we observe</div>
+      ${evidence}</div>
     <div class="acts"><button class="btn-primary" onclick="record('${c.customer_id}','treatment')" ${done?'disabled style=opacity:.4':''}>Record decision &amp; act</button>
       <button class="btn-ghost" onclick="record('${c.customer_id}','holdout')" ${done?'disabled style=opacity:.4':''}>Record as holdout</button></div>
     <div class="logged" id="logged">${done?'✓ decision recorded — feeding the loop':''}</div>`;
   renderKpis();renderFly();renderMaturity();
+}
+function getBreakdown(){
+  if(SUMMARY&&SUMMARY.category_breakdown) return SUMMARY.category_breakdown;
+  const b={};
+  DATA.forEach(c=>{const k=c.category;(b[k]=b[k]||{count:0,value_at_stake:0,_ch:0,_cl:0});
+    b[k].count++;b[k].value_at_stake+=c.value_at_stake;b[k]._ch+=c.churn_prob;b[k]._cl+=c.predicted_clv;});
+  Object.keys(b).forEach(k=>{b[k].avg_churn=b[k]._ch/b[k].count;b[k].avg_clv=b[k]._cl/b[k].count;b[k].actionable=ACT_CATS.includes(k);});
+  return b;
+}
+const PLAY_ACTION={
+  winback:"Run a timed win-back to this cohort before the 299-day window closes. Margin-aware reactivation, not a blanket discount.",
+  service_recovery:"Resolve the returns experience for this cohort (exchange and fit help). Do not discount; fix the cause.",
+  timing_nudge:"Send a light 'time to restock' nudge, early and cheap, before risk builds.",
+  loyalty:"Reward and deepen. These are healthy, high-value customers; grow their LTV.",
+  hold:"Monitor only. No strong actionable signal and low value at stake; spend elsewhere.",
+  first_repeat:"Drive first-to-second purchase across this volume cohort, timed before the window. This is the 88% one-timer base.",
+  discount:"Targeted discount as a last resort, only where margin allows."};
+function riskBadge(p){return p>=.5?['high','High risk']:p>=.3?['mid','Elevated']:['low','Healthy'];}
+function renderPlays(){
+  const host=document.getElementById('plays'); if(!host) return;
+  const b=getBreakdown();
+  const cats=Object.keys(b).sort((x,y)=>b[y].value_at_stake-b[x].value_at_stake);
+  const totC=cats.reduce((s,k)=>s+b[k].count,0), totV=cats.reduce((s,k)=>s+b[k].value_at_stake,0);
+  const blendCh=cats.reduce((s,k)=>s+b[k].avg_churn*b[k].count,0)/(totC||1);
+  const blendCl=cats.reduce((s,k)=>s+b[k].avg_clv*b[k].count,0)/(totC||1);
+  const chips=[`<button class="fchip ${catFilter==='all'?'on':''}" onclick="setFilter('all')">All <span class="n">${fmtInt(totC)}</span></button>`]
+    .concat(cats.map(k=>`<button class="fchip ${catFilter===k?'on':''}" onclick="setFilter('${k}')"><span class="dot" style="background:${catColor(k)}"></span>${(CAT[k]||{label:k}).label} <span class="n">${fmtInt(b[k].count)}</span></button>`)).join('');
+  const cb=document.getElementById('chipbar'); if(cb) cb.innerHTML=chips;
+  if(catFilter==='all'){
+    const [rc,rl]=riskBadge(blendCh);
+    const mx=Math.max(...cats.map(c=>b[c].value_at_stake),1);
+    const bars=cats.map(k=>{const v=b[k];const w=Math.max(2,v.value_at_stake/mx*100);
+      return `<div class="vbar" onclick="setFilter('${k}')"><span class="vname"><span class="pdot" style="background:${catColor(k)}"></span>${(CAT[k]||{label:k}).label}</span><div class="vtrack"><i style="width:${w}%;background:${catColor(k)}"></i></div><span class="vval">${fmt(v.value_at_stake)}</span></div>`;}).join('');
+    host.innerHTML=`<div class="gtop">
+      <div class="gcard"><div class="gstat l">Blended churn (299d)</div><div class="gbig">${Math.round(blendCh*100)}%</div><span class="rbadge ${rc}">${rl}</span>
+        <div class="gstats"><div class="gstat"><div class="l">Customers at risk</div><div class="v">${fmtInt(totC)}</div></div><div class="gstat"><div class="l">Value at stake</div><div class="v">${fmt(totV)}</div></div><div class="gstat"><div class="l">Avg CLV</div><div class="v">${fmt(blendCl)}</div></div></div></div>
+      <div class="gcard"><div class="gstat l" style="margin-bottom:10px">Value at stake by play</div>${bars}<div class="dzlegend">Pick a play above for its recommended action and risk drivers.</div></div>
+    </div>`;
+    return;
+  }
+  const v=b[catFilter]; if(!v){host.innerHTML='';return;}
+  const [rc,rl]=riskBadge(v.avg_churn);
+  const retained=v.value_at_stake*(((CAT[catFilter]||{}).conv)||.2);
+  const drivers=v.drivers||[];
+  const bars = drivers.length ? drivers.map(d=>`<div class="dz"><div class="lab">${d.label}</div><div class="dztrack"><i class="${d.z>0?'up':'dn'}" style="width:${Math.min(100,Math.abs(d.val)*100)}%"></i></div><div class="dznum ${d.z>0?'up':'dn'}">${d.z>0?'+':''}${d.z.toFixed(2)}</div></div>`).join('')
+    : '<div class="dzlegend">Driver profile available with live data.</div>';
+  host.innerHTML=`<div class="gtop">
+    <div class="gcard"><div class="gstat l">Blended churn (299d)</div><div class="gbig">${Math.round(v.avg_churn*100)}%</div><span class="rbadge ${rc}">${rl}</span>
+      <div class="gstats"><div class="gstat"><div class="l">Customers</div><div class="v">${fmtInt(v.count)}</div></div><div class="gstat"><div class="l">Value at stake</div><div class="v">${fmt(v.value_at_stake)}</div></div><div class="gstat"><div class="l">Avg CLV</div><div class="v">${fmt(v.avg_clv)}</div></div><div class="gstat"><div class="l">Projected retained if actioned</div><div class="v" style="color:var(--live)">${fmt(retained)}</div></div></div></div>
+    <div class="greco"><div class="t">Recommended play — ${(CAT[catFilter]||{label:catFilter}).label}</div><div class="a">${PLAY_ACTION[catFilter]||''}</div></div>
+  </div>
+  <div style="border-top:1px solid var(--line);margin-top:16px;padding-top:14px">
+    <div class="gstat l" style="margin-bottom:8px">What separates this cohort from the average repeat buyer</div>
+    ${bars}
+    <div class="dzlegend">Red pushes churn risk up vs the book, green pulls it down. Standardized deviation, not SHAP.</div>
+  </div>`;
+}
+function setFilter(cat){
+  catFilter=cat;
+  const view=cat==='all'?RANKED:RANKED.filter(c=>c.category===cat);
+  if(view.length && !view.some(c=>c.customer_id===selected)) selected=view[0].customer_id;
+  render();
 }
 function renderKpis(){
   const ar = SUMMARY ? SUMMARY.total_at_risk : DATA.filter(c=>c.churn_prob>=.5).length;

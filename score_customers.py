@@ -32,8 +32,6 @@ import numpy as np
 import pandas as pd
 
 CHURN_WINDOW = 299
-MIN_OVERDUE_DAYS = 21   # floor before any "overdue" branch fires (short-gap noise)
-HIGH_CHURN = 0.50       # above this, surface honest risk + nudge, never reward/idle
 CLV_HORIZON_DAYS = 365  # 12-month CLV
 
 # ---- recommender (adapted to the real feature_table columns) -------------
@@ -84,7 +82,7 @@ def why_for_row(r):
         risk.append((rr, f"returns {rr*100:.0f}% of orders"))
     if ds > CHURN_WINDOW:
         risk.append((1.0, f"no order in {int(ds)} days, past the {CHURN_WINDOW}-day window"))
-    elif not np.isnan(dsl) and dsl >= 1.5 and ds >= MIN_OVERDUE_DAYS:
+    elif not np.isnan(dsl) and dsl >= 1.5:
         phrase = (f"{dsl:.1f}x past their usual reorder gap" if dsl < 5
                   else "well past their usual reorder pace")
         risk.append((min(dsl / 3, 0.95), phrase))
@@ -92,8 +90,6 @@ def why_for_row(r):
         risk.append((1 - pa, f"{pa*100:.0f}% modelled chance still active"))
     if freq == 0:
         risk.append((0.5, "one purchase so far, no repeat yet"))
-    if not risk and churn >= HIGH_CHURN:
-        risk.append((churn, "model flags elevated churn risk, no single dominant cause"))
     risk.sort(key=lambda x: -x[0])
     risk_phrases = [t for _, t in risk][:3]
 
@@ -105,8 +101,6 @@ def why_for_row(r):
         prot.append((pa, f"{pa*100:.0f}% modelled chance still active"))
     if not np.isnan(dsl) and dsl < 1.0 and freq >= 1:
         prot.append((1 - dsl, "ordering on or close to their usual pace"))
-    if 0 < ds <= MIN_OVERDUE_DAYS and freq >= 1:
-        prot.append((0.45, f"ordered {int(ds)} day{'s' if int(ds) != 1 else ''} ago, recent"))
     if rr == 0 and freq >= 1:
         prot.append((0.4, "no returns on record"))
     if clv >= 200:
@@ -115,10 +109,7 @@ def why_for_row(r):
     prot_phrases = [t for _, t in prot][:3]
 
     if not risk_phrases and not prot_phrases:
-        if churn >= HIGH_CHURN:
-            risk_phrases = ["model flags elevated churn risk, no single dominant cause"]
-        else:
-            prot_phrases = ["stable, low-risk profile"]
+        prot_phrases = ["stable, low-risk profile"]
 
     return {"risk": risk_phrases, "protective": prot_phrases}
 
@@ -139,12 +130,10 @@ def recommend_row(r):
     elif pa <= 0.20 or ds > CHURN_WINDOW:
         if clv >= 120: cat, act = "winback", "Last-chance personal win-back, justified by value at stake."
         else: cat, act, it = "hold", "Likely gone and low value - do not spend.", "none"
-    elif not np.isnan(dsl) and dsl >= 1.6 and ds >= MIN_OVERDUE_DAYS:
+    elif not np.isnan(dsl) and dsl >= 1.6:
         cat, act = "winback", "Timed win-back now - overdue, approaching the window."
-    elif not np.isnan(dsl) and dsl >= 1.0 and ds >= MIN_OVERDUE_DAYS:
+    elif not np.isnan(dsl) and dsl >= 1.0:
         cat, act = "timing_nudge", "Light 'time to restock?' nudge - early and cheap."
-    elif churn >= HIGH_CHURN:
-        cat, act = "timing_nudge", "Model flags elevated risk with no single cause - light check-in nudge."
     elif clv >= 120:
         cat, act = "loyalty", "Healthy and high value - reward to deepen the relationship."
     else:
@@ -182,46 +171,27 @@ def main(a):
     # ---- churn probability (XGBoost) ----
     if use_temporal:
         meta = json.load(open(temporal_meta))
-        feats = [c.strip() for c in meta["feature_cols"]]   # preserve case; merch dummies have caps/spaces
-        # Align the table to the model's training vocabulary. One-hot dummies
-        # (ptype_/pricebucket_/gender_/region_) drift across data refreshes: a
-        # category absent from a slice never gets a column, and case/spacing can
-        # differ ("ptype_Combined Collection" vs lower-case). Match on a
-        # normalised key, rename drifted columns back to the model's names, then
-        # add any genuinely-absent dummy as 0 (the customer simply has none of
-        # that category). Non-dummy core features missing is a real error.
-        DUMMY_PREFIXES = ("ptype_", "pricebucket_", "gender_", "region_")
-        def _norm(c): return c.strip().lower()
-        norm_to_actual = {}
-        for c in df.columns:
-            norm_to_actual.setdefault(_norm(c), c)
-        renamed, filled = [], []
-        for want in feats:
-            if want in df.columns:
-                continue
-            actual = norm_to_actual.get(_norm(want))
-            if actual is not None and actual != want:
-                df = df.rename(columns={actual: want})
-                renamed.append((actual, want))
-            else:
-                df[want] = 0.0
-                filled.append(want)
-        if renamed:
-            print(f"[align] renamed {len(renamed)} drifted column(s) to model names: {renamed}")
-        if filled:
-            non_dummy = [c for c in filled if not c.startswith(DUMMY_PREFIXES)]
-            if non_dummy:
-                raise SystemExit(
-                    "The temporal churn model needs core features this table does "
-                    f"not have (not one-hot dummies):\n  {non_dummy}\n"
-                    "Re-export feature_table_temporal.parquet from "
-                    "04_churn_xgboost_temporal (the hardened, fixed-vocabulary "
-                    "notebook), not the basic feature_table.parquet.")
-            print(f"[align] filled {len(filled)} absent one-hot column(s) with 0 "
-                  f"(category not present in this slice): {filled}")
+        feats = [c.strip() for c in meta["feature_cols"]]
+        # resolve each model feature to an actual table column, ignoring case and
+        # surrounding whitespace, so a casing mismatch between the metrics file and
+        # the parquet (e.g. "ptype_Combined Collection" vs "ptype_combined collection")
+        # does not break scoring.
+        lut = {c.strip().lower(): c for c in df.columns}
+        resolved, missing = [], []
+        for f in feats:
+            actual = lut.get(f.strip().lower())
+            (resolved.append(actual) if actual is not None else missing.append(f))
+        if missing:
+            raise SystemExit(
+                "The temporal churn model needs features this table does not have:\n"
+                f"  {missing}\n"
+                "Point --features at the temporal feature table exported by "
+                "04_churn_xgboost_temporal (feature_table_temporal.parquet), "
+                "not the basic feature_table.parquet.")
         bst = xgb.Booster(); bst.load_model(str(temporal_model))
         print(f"scoring churn (TEMPORAL model, {len(feats)} features, leakage fixed)...")
-        dm = xgb.DMatrix(df[feats].astype(float).values, feature_names=feats)
+        # select by the table's actual column names, label with the model's names
+        dm = xgb.DMatrix(df[resolved].astype(float).values, feature_names=feats)
         df["churn_prob"] = bst.predict(dm)
     else:
         meta = json.load(open(mdir / "churn_metrics.json"))
@@ -269,6 +239,9 @@ def main(a):
         else:
             _ag = (df["recency"] / df["frequency"].replace(0, np.nan))
             df["dsl_per_gap"] = df["days_since_last_order"] / _ag
+    # reorder gap is undefined with a single order; null it so one-timers don't
+    # distort it (they are 88% of the base) and don't read as "overdue".
+    df.loc[df["frequency"] == 0, "dsl_per_gap"] = np.nan
 
     # ---- recommendation per customer ----
     print("recommending...")
@@ -326,6 +299,54 @@ def main(a):
 
     # ---- population summary: value-based totals the header shows (not churn-gated) ----
     has_value = scored["value_at_stake"] > 0
+    ACTIONABLE_CATS = {"winback", "loyalty", "timing_nudge", "service_recovery"}
+    # group-level driver profile. Honest stand-in for per-group SHAP: standardized
+    # deviation of each group's mean from the whole-population mean, signed so that
+    # positive = pushes churn risk up (red), negative = pulls it down (green).
+    DRIVERS = [
+        ("Days since last order", "days_since_last_order", +1),
+        ("Reorder gap (overdue)", "dsl_per_gap", +1),
+        ("Refund rate", "refund_rate", +1),
+        ("Order frequency", "frequency", -1),
+        ("Avg order value", "avg_order_value", -1),
+    ]
+    drv = [(lab, col, d) for lab, col, d in DRIVERS if col in df.columns]
+    # baseline = repeat buyers (behavioural drivers are meaningful once there is
+    # more than one order); winsorize tails so a few very-frequent buyers do not
+    # dominate the scale.
+    base = df[df["frequency"] >= 1]
+    bounds, popstat = {}, {}
+    for _, col, _ in drv:
+        s = base[col].dropna()
+        lo, hi = (float(s.quantile(0.02)), float(s.quantile(0.98))) if len(s) else (0.0, 1.0)
+        bounds[col] = (lo, hi)
+        cs = s.clip(lo, hi)
+        popstat[col] = (float(cs.mean()), (float(cs.std()) or 1.0))
+
+    category_breakdown = {}
+    for cat, g in df.groupby("category"):
+        gg = g if cat == "first_repeat" else g[g["frequency"] >= 1]
+        raw = []
+        for lab, col, direction in drv:
+            lo, hi = bounds[col]
+            mu, sd = popstat[col]
+            gm = float(gg[col].clip(lo, hi).mean())
+            z = 0.0 if (sd == 0 or gm != gm) else (gm - mu) / sd
+            z = max(-2.5, min(2.5, direction * z))            # signed, clipped contribution
+            raw.append([lab, z])
+        mx = max((abs(z) for _, z in raw), default=1.0) or 1.0
+        drivers = sorted(
+            [{"label": lab, "z": round(z, 2), "val": round(z / mx, 3)} for lab, z in raw],
+            key=lambda d: -abs(d["z"]),
+        )
+        category_breakdown[str(cat)] = {
+            "count": int(len(g)),
+            "value_at_stake": round(float(g["value_at_stake"].sum()), 2),
+            "avg_churn": round(float(g["churn_prob"].mean()), 4),
+            "avg_clv": round(float(g["predicted_clv"].mean()), 2),
+            "actionable": bool(cat in ACTIONABLE_CATS),
+            "drivers": drivers,
+        }
     summary = {
         "total_customers": int(len(scored)),
         "total_at_risk": int(has_value.sum()),                         # customers with CLV value exposed to churn
@@ -337,6 +358,7 @@ def main(a):
         "sample_size": int(len(sample)),
         "atrisk_threshold": float(a.atrisk_threshold),
         "category_counts": {k: int(v) for k, v in scored["category"].value_counts().items()},
+        "category_breakdown": category_breakdown,
         "generated_at": datetime.now().isoformat(timespec="seconds"),
     }
 
